@@ -33,6 +33,21 @@ const GeminiEnvSchema = z.object({
 const DEFAULT_MODEL = 'gemini-1.5-flash'
 const DEFAULT_FALLBACK_MODEL = 'gemini-1.5-flash'
 
+function normalizeModelName(raw: string | undefined | null): string | null {
+  if (!raw) return null
+  const cleaned = raw
+    .replace(/^models\//, '')
+    .replace(/:generateContent$/i, '')
+    .trim()
+
+  if (!cleaned) return null
+  // Some UI presets append "-latest" which isn't available on all endpoints
+  if (cleaned.endsWith('-latest')) {
+    return cleaned.replace(/-latest$/, '')
+  }
+  return cleaned
+}
+
 let cachedConfig:
   | {
     apiKey: string
@@ -55,15 +70,14 @@ function getGeminiConfig() {
     throw createHttpError(500, 'ocr_unavailable', 'GEMINI_API_KEY is required')
   }
 
-  const model =
-    env.data.GEMINI_MODEL?.replace(/^models\//, '')?.trim() || DEFAULT_MODEL
+  const model = normalizeModelName(env.data.GEMINI_MODEL) || DEFAULT_MODEL
 
   const endpoint =
     buildEndpointFromEnv(model, env.data.GEMINI_API_URL) ??
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
 
   const fallbackModelRaw =
-    env.data.GEMINI_FALLBACK_MODEL?.replace(/^models\//, '')?.trim() ||
+    normalizeModelName(env.data.GEMINI_FALLBACK_MODEL) ||
     (model !== DEFAULT_FALLBACK_MODEL ? DEFAULT_FALLBACK_MODEL : '')
 
   const fallbackModel =
@@ -413,7 +427,11 @@ async function requestGeminiWithFallback(
       })
     } catch (error) {
       lastError = error
-      if (isRetryableOverload(error)) {
+      if (
+        isRetryableOverload(error) ||
+        (isHttpError(error) &&
+          (error.code === 'ocr_model_not_found' || error.code === 'ocr_invalid_request'))
+      ) {
         // Try the next target (fallback model/endpoint)
         continue
       }

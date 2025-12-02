@@ -46,24 +46,10 @@ import {
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/Dialog'
 import { AnimatedTabs } from './_components/AnimatedTabs'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
-import { Suspense } from 'react'
-
-// Lazy load heavy dialog components to reduce initial bundle size
-const AddClassDialog = React.lazy(() =>
-  import('./_components/dialogs/AddClassDialog').then(m => ({ default: m.AddClassDialog }))
-)
-const AddSectionDialog = React.lazy(() =>
-  import('./_components/dialogs/AddSectionDialog').then(m => ({ default: m.AddSectionDialog }))
-)
-const ImportClassesDialog = React.lazy(() =>
-  import('./_components/dialogs/ImportClassesDialog').then(m => ({ default: m.ImportClassesDialog }))
-)
-const AddUserDialog = React.lazy(() =>
-  import('./users/components/dialogs/AddUserDialog').then(m => ({ default: m.AddUserDialog }))
-)
-
-
-
+import { AddClassDialog } from './_components/dialogs/AddClassDialog'
+import { AddSectionDialog } from './_components/dialogs/AddSectionDialog'
+import { ImportClassesDialog } from './_components/dialogs/ImportClassesDialog'
+import { AddUserDialog } from './users/components/dialogs/AddUserDialog'
 import { useToast } from '@/components/toast'
 import { inputClasses } from '@/components/ui/Input'
 
@@ -1000,44 +986,36 @@ export default function AdminDashboard() {
         </Dialog>
 
         {/* Action Dialogs - Lazy loaded for performance */}
-        <Suspense fallback={null}>
-          {importOpen && (
-            <ImportClassesDialog
-              open={importOpen}
-              onClose={() => setImportOpen(false)}
-              sections={sectionsData ?? []}
-              instructors={instructors}
-              onImported={load}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={null}>
-          {addClassOpen && (
-            <AddClassDialog
-              open={addClassOpen}
-              onOpenChange={setAddClassOpen}
-              onCreated={load}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={null}>
-          {addSectionOpen && (
-            <AddSectionDialog
-              open={addSectionOpen}
-              onOpenChange={setAddSectionOpen}
-              onCreated={load}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={null}>
-          {addUserOpen && (
-            <AddUserDialog
-              open={addUserOpen}
-              onOpenChange={setAddUserOpen}
-              onCreated={load}
-            />
-          )}
-        </Suspense>
+        {importOpen && (
+          <ImportClassesDialog
+            open={importOpen}
+            onClose={() => setImportOpen(false)}
+            sections={sectionsData ?? []}
+            instructors={instructors}
+            onImported={load}
+          />
+        )}
+        {addClassOpen && (
+          <AddClassDialog
+            open={addClassOpen}
+            onOpenChange={setAddClassOpen}
+            onCreated={load}
+          />
+        )}
+        {addSectionOpen && (
+          <AddSectionDialog
+            open={addSectionOpen}
+            onOpenChange={setAddSectionOpen}
+            onCreated={load}
+          />
+        )}
+        {addUserOpen && (
+          <AddUserDialog
+            open={addUserOpen}
+            onOpenChange={setAddUserOpen}
+            onCreated={load}
+          />
+        )}
       </div >
     </div >
   )

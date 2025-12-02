@@ -700,7 +700,7 @@ export default function AdminDashboard() {
                       <Button
                         type="button"
                         variant="secondary"
-                        className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+                        className="px-4"
                         onClick={() => setActivityPage(p => Math.max(1, p - 1))}
                         disabled={activityPage === 1 || filteredAuditEntries.length === 0}
                       >
@@ -709,7 +709,7 @@ export default function AdminDashboard() {
                       <Button
                         type="button"
                         variant="secondary"
-                        className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+                        className="px-4"
                         onClick={() => setActivityPage(p => Math.min(activityPageCount, p + 1))}
                         disabled={activityPage * activityPageSize >= filteredAuditEntries.length}
                       >

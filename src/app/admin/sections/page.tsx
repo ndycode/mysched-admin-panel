@@ -697,31 +697,53 @@ export default function SectionsPage() {
   )
 
   const headerActions = (
-    <div className="flex items-center gap-3">
-      <AnimatedActionBtn
-        icon={Download}
-        label="Export"
-        onClick={() => setExporting(true)}
-        disabled={exporting}
-        variant="secondary"
-      />
-      <AnimatedActionBtn
-        icon={RefreshCw}
-        label="Reload"
-        onClick={handleManualRefresh}
-        disabled={isFetching}
-        isLoading={reloadSpinning}
-        loadingLabel="Reloading..."
-        variant="secondary"
-        spinner="framer"
-      />
-      <AnimatedActionBtn
-        icon={Plus}
-        label="Add Section"
-        onClick={() => setAddOpen(true)}
-        variant="primary"
-      />
-    </div>
+    <>
+      {/* Desktop / Tablet */}
+      <div className="hidden items-center gap-3 sm:flex">
+        <AnimatedActionBtn
+          icon={Download}
+          label="Export"
+          onClick={() => setExporting(true)}
+          disabled={exporting}
+          variant="secondary"
+        />
+        <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={handleManualRefresh}
+          disabled={isFetching}
+          isLoading={reloadSpinning}
+          loadingLabel="Reloading..."
+          variant="secondary"
+          spinner="framer"
+        />
+        <AnimatedActionBtn
+          icon={Plus}
+          label="Add Section"
+          onClick={() => setAddOpen(true)}
+          variant="primary"
+        />
+      </div>
+
+      {/* Mobile */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        <AnimatedActionBtn
+          icon={Plus}
+          label="Add Section"
+          onClick={() => setAddOpen(true)}
+          variant="primary"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
+          icon={Download}
+          label="Export"
+          onClick={() => setExporting(true)}
+          disabled={exporting}
+          variant="secondary"
+          className="w-full justify-center"
+        />
+      </div>
+    </>
   )
 
   const stats = useMemo(() => computeStats(sections), [sections])
@@ -768,8 +790,33 @@ export default function SectionsPage() {
         />
 
         <div className="space-y-6">
+          {/* Stats Grid (mobile first) */}
+          <div className="order-1 grid grid-cols-2 gap-3 sm:order-none sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+            <StatsCard
+              icon={Grid}
+              label="Total Sections"
+              value={String(stats.totalSections)}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={Grid}
+              label="Added This Month"
+              value={String(stats.addedThisMonth)}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={Grid}
+              label="Last Updated"
+              value={stats.lastUpdated ? formatDate(stats.lastUpdated) : '-'}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+          </div>
+
           {/* Filters */}
-          <CardSurface className="space-y-4 shadow-sm border-border hover:border-border/80 transition-colors">
+          <CardSurface className="order-2 space-y-4 shadow-sm border-border hover:border-border/80 transition-colors sm:order-none">
             <div className="p-1">
               <div className="mb-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</h3>
@@ -787,7 +834,7 @@ export default function SectionsPage() {
                   setPage(1)
                 }}
               />
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+              <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center lg:flex-row lg:items-center">
                 <div className="relative w-full lg:max-w-md">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                   <input
@@ -799,7 +846,7 @@ export default function SectionsPage() {
                     className={inputClasses({ className: 'pl-10 pr-4' })}
                   />
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <AnimatedActionBtn
@@ -861,32 +908,6 @@ export default function SectionsPage() {
               </CardSurface>
             ) : null
           }
-
-          {/* Stats Grid */}
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-            <StatsCard
-              icon={Grid}
-              label="Total Sections"
-              value={String(stats.totalSections)}
-              className="shadow-sm border-border"
-              animateKey={statsPulse}
-            />
-            <StatsCard
-              icon={Grid}
-              label="Added This Month"
-              value={String(stats.addedThisMonth)}
-              className="shadow-sm border-border"
-              animateKey={statsPulse}
-            />
-            <StatsCard
-              icon={Grid}
-              label="Last Updated"
-              value={stats.lastUpdated ? formatDate(stats.lastUpdated) : '—'}
-              className="shadow-sm border-border"
-              animateKey={statsPulse}
-            />
-          </div>
 
           <div className="relative">
             {sectionsRefreshing ? (

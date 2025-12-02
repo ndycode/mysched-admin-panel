@@ -75,7 +75,9 @@ export function AdminTable({
           </tbody>
         </table>
         {!loading && pagination ? (
-          <div className="border-t border-border bg-transparent px-4 py-3 sm:px-6">{pagination}</div>
+          <div className="border-t border-border bg-background/95 px-4 py-3 sm:px-6 sm:static sticky bottom-0 z-20 backdrop-blur-sm">
+            {pagination}
+          </div>
         ) : null}
       </div>
     </section>

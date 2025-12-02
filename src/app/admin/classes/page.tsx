@@ -565,8 +565,44 @@ export default function ClassesPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Filters */}
-          <CardSurface className="space-y-4 shadow-sm border-border hover:border-border/80 transition-colors">
+          {/* Stats Grid (mobile first) */}
+          <div className="order-1 grid gap-4 sm:order-none sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+            <StatsCard
+              icon={Layers}
+              label="Total Classes"
+              value={String(stats.totalClasses)}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={Calendar}
+              label="Scheduled"
+              value={String(stats.scheduledClasses)}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={Grid}
+              label="Sections"
+              value={String(stats.representedSections)}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={Scale}
+              label="Avg. Units"
+              value={
+                typeof stats.avgUnits === 'number'
+                  ? stats.avgUnits.toFixed(1)
+                  : '-'
+              }
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+          </div>
+
+          {/* Filters (after stats on mobile) */}
+          <CardSurface className="order-2 space-y-4 shadow-sm border-border hover:border-border/80 transition-colors sm:order-none">
             <div className="p-1">
               <div className="mb-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</h3>
@@ -718,42 +754,6 @@ export default function ClassesPage() {
               </div>
             </div>
           </CardSurface>
-
-          {/* Stats Grid */}
-          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
-            <StatsCard
-              icon={Layers}
-              label="Total Classes"
-              value={String(stats.totalClasses)}
-              className="shadow-sm border-border"
-              animateKey={statsPulse}
-            />
-            <StatsCard
-              icon={Calendar}
-              label="Scheduled"
-              value={String(stats.scheduledClasses)}
-              className="shadow-sm border-border"
-              animateKey={statsPulse}
-            />
-            <StatsCard
-              icon={Grid}
-              label="Sections"
-              value={String(stats.representedSections)}
-              className="shadow-sm border-border"
-              animateKey={statsPulse}
-            />
-            <StatsCard
-              icon={Scale}
-              label="Avg. Units"
-              value={
-                typeof stats.avgUnits === 'number'
-                  ? stats.avgUnits.toFixed(1)
-                  : '-'
-              }
-              className="shadow-sm border-border"
-              animateKey={statsPulse}
-            />
-          </div>
           <div className="relative">
             {classesRefreshing ? (
               <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">

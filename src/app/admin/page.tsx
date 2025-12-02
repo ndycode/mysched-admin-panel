@@ -707,7 +707,7 @@ export default function AdminDashboard() {
                       </span>
 
                     </div>
-                    <div className="flex items-center gap-2 ml-auto">
+                    <div className="flex items-center gap-2 w-full justify-start sm:w-auto sm:justify-end sm:ml-auto">
                       <Button
                         type="button"
                         variant="secondary"

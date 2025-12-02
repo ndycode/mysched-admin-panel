@@ -187,7 +187,7 @@ export function AdminLayoutShell({ greeting, displayName, initial, avatarUrl, em
           <div className="relative flex min-h-screen min-w-0 flex-1 flex-col">
 
             {/* Mobile Header */}
-            <div className="sticky top-0 z-[80] flex items-center justify-center border-b border-border bg-card/95 px-4 py-3 backdrop-blur md:hidden">
+            <div className="sticky top-0 z-[40] flex items-center justify-center border-b border-border bg-card/95 px-4 py-3 backdrop-blur md:hidden">
               <button
                 onClick={() => setMobileMenuOpen(true)}
                 className="absolute left-4 inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -215,7 +215,7 @@ export function AdminLayoutShell({ greeting, displayName, initial, avatarUrl, em
           {/* Mobile Menu Overlay */}
           <AnimatePresence mode="wait" initial={false}>
             {mobileMenuOpen ? (
-              <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+              <div className="fixed inset-0 z-[90] md:hidden" role="dialog" aria-modal="true">
                 <motion.div
                   key="mobile-overlay"
                   initial="hidden"

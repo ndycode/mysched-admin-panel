@@ -20,7 +20,7 @@ import {
   ArrowLeftToLine,
   ArrowRightToLine,
   Bell,
-  Menu,
+  ChevronsRight,
   RefreshCw,
   X,
   Loader2,
@@ -192,7 +192,7 @@ export function AdminLayoutShell({ greeting, displayName, initial, avatarUrl, em
                 onClick={() => setMobileMenuOpen(true)}
                 className="absolute left-4 inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <Menu className="h-5 w-5" />
+                <ChevronsRight className="h-5 w-5" />
                 <span className="sr-only">Open navigation</span>
               </button>
               <span className="text-base font-semibold text-primary">MySched</span>

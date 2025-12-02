@@ -16,7 +16,7 @@ export function PageSizeSelector({
 }: PageSizeSelectorProps) {
     return (
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span>Rows per page:</span>
+            <span className="hidden sm:inline">Rows per page:</span>
             <div className="flex items-center gap-1">
                 {options.map((option) => {
                     const isSelected = pageSize === option

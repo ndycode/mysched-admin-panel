@@ -486,6 +486,7 @@ export default function AdminDashboard() {
         loadingLabel="Refreshing..."
         variant="secondary"
         spinner="framer"
+        className="hidden sm:inline-flex"
       />
     </div>
   )

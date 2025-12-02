@@ -456,6 +456,7 @@ export default function UsersPage() {
         loadingLabel="Reloading..."
         variant="secondary"
         spinner="framer"
+        className="hidden sm:inline-flex"
       />
       <AnimatedActionBtn
         icon={UserPlus}

@@ -717,8 +717,8 @@ export default function AuditLogPage() {
               colSpan={8}
               minWidthClass="min-w-screen-xl table-fixed"
               pagination={
-                <div className="flex w-full flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-4">
+                <div className="flex w-full flex-wrap items-center gap-3 sm:justify-between">
+                  <div className="flex items-center gap-4 w-full sm:w-auto">
                     <span className="text-sm text-muted-foreground">
                       Page {page} of {totalPages}
                     </span>
@@ -731,7 +731,7 @@ export default function AuditLogPage() {
                       options={[10, 20, 50, 100]}
                     />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full justify-end sm:w-auto sm:justify-start">
                     <Button
                       type="button"
                       variant="secondary"

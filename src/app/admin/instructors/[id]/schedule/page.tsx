@@ -305,14 +305,14 @@ export default function InstructorSchedulePage() {
                 colSpan={4}
                 minWidthClass="min-w-md"
                 pagination={(
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-3 sm:justify-between">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
                       <span className="text-sm text-muted-foreground">
                         Page {assignedPage} of {assignedPageCount}
                       </span>
-                      <span className="text-sm text-muted-foreground">Rows per page: {pageSize}</span>
+                      <span className="hidden text-sm text-muted-foreground sm:inline">Rows per page: {pageSize}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full justify-end sm:w-auto sm:justify-start">
                       <Button
                         type="button"
                         variant="secondary"
@@ -391,14 +391,14 @@ export default function InstructorSchedulePage() {
                 colSpan={4}
                 minWidthClass="min-w-md"
                 pagination={(
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-3 sm:justify-between">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
                       <span className="text-sm text-muted-foreground">
                         Page {unassignedPage} of {unassignedPageCount}
                       </span>
-                      <span className="text-sm text-muted-foreground">Rows per page: {pageSize}</span>
+                      <span className="hidden text-sm text-muted-foreground sm:inline">Rows per page: {pageSize}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full justify-end sm:w-auto sm:justify-start">
                       <Button
                         type="button"
                         variant="secondary"

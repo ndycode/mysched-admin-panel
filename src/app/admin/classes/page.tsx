@@ -587,7 +587,7 @@ export default function ClassesPage() {
                   setPage(1)
                 }}
               />
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+              <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center lg:flex-row lg:items-center">
                 <div className="relative w-full lg:max-w-md">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                   <input
@@ -599,7 +599,7 @@ export default function ClassesPage() {
                     className={inputClasses({ className: 'pl-10 pr-4' })}
                   />
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <AnimatedActionBtn

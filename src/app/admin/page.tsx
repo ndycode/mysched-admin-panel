@@ -451,8 +451,22 @@ export default function AdminDashboard() {
   }, [auditEntriesRaw.length, classesCount, sectionsCount, incidentsCount])
 
   const donutData = useMemo(() => {
-    if (activeDistTab === 'Classes') return [analytics[0]]
-    if (activeDistTab === 'Sections') return [analytics[1]]
+    if (activeDistTab === 'Classes') {
+      return [
+        {
+          ...analytics[0],
+          color: 'color-mix(in srgb, var(--primary), transparent 0%)',
+        },
+      ]
+    }
+    if (activeDistTab === 'Sections') {
+      return [
+        {
+          ...analytics[1],
+          color: 'color-mix(in srgb, var(--primary), transparent 0%)',
+        },
+      ]
+    }
     return analytics
   }, [activeDistTab, analytics])
 

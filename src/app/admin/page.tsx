@@ -447,33 +447,19 @@ export default function AdminDashboard() {
       base[3].color = 'color-mix(in srgb, var(--primary), transparent 80%)'
     }
 
-    if (activeDistTab === 'Overview') return base
+    return base
+  }, [auditEntriesRaw.length, classesCount, sectionsCount, incidentsCount])
 
-    const matcher = activeDistTab.toLowerCase()
-    return base.map(item => {
-      const lowerName = item.name.toLowerCase()
-      const isMatch =
-        matcher === 'classes'
-          ? lowerName.includes('classes')
-          : matcher === 'sections'
-            ? lowerName.includes('sections')
-            : false
-
-      return {
-        ...item,
-        color: isMatch
-          ? 'color-mix(in srgb, var(--primary), transparent 0%)'
-          : 'color-mix(in srgb, var(--muted-foreground), transparent 30%)',
-      }
-    })
-  }, [activeDistTab, auditEntriesRaw.length, classesCount, sectionsCount, incidentsCount])
+  const donutData = useMemo(() => {
+    if (activeDistTab === 'Classes') return [analytics[0]]
+    if (activeDistTab === 'Sections') return [analytics[1]]
+    return analytics
+  }, [activeDistTab, analytics])
 
   const activeDistIndex = useMemo(() => {
     if (activeDistTab === 'Overview') return null
-    const matcher = activeDistTab.toLowerCase()
-    const idx = analytics.findIndex(item => item.name.toLowerCase().includes(matcher))
-    return idx >= 0 ? idx : null
-  }, [activeDistTab, analytics])
+    return 0
+  }, [activeDistTab])
 
 
   const headerActions = (

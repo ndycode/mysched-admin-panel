@@ -500,7 +500,7 @@ export default function AdminDashboard() {
 
         <div className="space-y-6">
           {/* Stats Grid */}
-          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
             <StatsCard
               icon={TrendingUp}
               label="Total Activity"

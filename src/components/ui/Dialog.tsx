@@ -4,7 +4,7 @@ import * as React from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, useReducedMotion, type Transition } from 'framer-motion'
 import { X } from 'lucide-react'
-import { useLenis, ReactLenis } from '@studio-freight/react-lenis'
+import { useLenis, ReactLenis } from 'lenis/react'
 
 import { cn } from '@/components/ui'
 

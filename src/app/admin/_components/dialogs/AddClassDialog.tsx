@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ReactLenis } from '@studio-freight/react-lenis'
+import { ReactLenis } from 'lenis/react'
 import { ChevronDown, Loader2, Plus, X } from 'lucide-react'
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/Dialog'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'

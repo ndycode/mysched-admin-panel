@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
-import { ReactLenis } from '@studio-freight/react-lenis'
+import { ReactLenis } from 'lenis/react'
 import { Dialog, DialogBody, DialogHeader, DialogFooter } from '@/components/ui/Dialog'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
 import { ChevronDown, X, Upload, Check, AlertTriangle, FileText } from 'lucide-react'

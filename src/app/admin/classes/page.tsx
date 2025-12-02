@@ -9,7 +9,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
-import { ReactLenis } from '@studio-freight/react-lenis'
+import { ReactLenis } from 'lenis/react'
 import {
   keepPreviousData,
   useQuery,

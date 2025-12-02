@@ -1,7 +1,7 @@
 'use client'
 
 import type { ComponentProps } from 'react'
-import { ReactLenis } from '@studio-freight/react-lenis'
+import { ReactLenis } from 'lenis/react'
 
 type SmoothScrollProps = {
   children: ComponentProps<typeof ReactLenis>['children']

@@ -9,7 +9,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
-import { ReactLenis } from '@studio-freight/react-lenis'
+import { ReactLenis } from 'lenis/react'
 
 interface TimeInputProps {
     value: string

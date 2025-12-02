@@ -15,7 +15,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu'
 import { DAY_SELECT_OPTIONS, DayValue } from '@/lib/days'
-import { ReactLenis } from '@studio-freight/react-lenis'
+import { ReactLenis } from 'lenis/react'
 import { X, Save, ChevronDown } from 'lucide-react'
 
 type Row = {

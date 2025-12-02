@@ -26,7 +26,7 @@ import {
   Check,
 } from 'lucide-react'
 
-import { ReactLenis } from '@studio-freight/react-lenis'
+import { ReactLenis } from 'lenis/react'
 import { Badge, Button, PrimaryButton } from '@/components/ui'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
 import { AddSectionDialog } from '../_components/dialogs/AddSectionDialog'

@@ -4,7 +4,7 @@ import React from 'react'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { ReactLenis } from '@studio-freight/react-lenis'
+import { ReactLenis } from 'lenis/react'
 
 import { cn } from '@/lib/utils'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'

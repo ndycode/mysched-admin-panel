@@ -449,21 +449,31 @@ export default function AdminDashboard() {
 
     if (activeDistTab === 'Overview') return base
 
-    // For specific tabs, highlight the matching item and dim others
     const matcher = activeDistTab.toLowerCase()
     return base.map(item => {
       const lowerName = item.name.toLowerCase()
-      const isMatch = matcher === 'classes' ? lowerName.includes('classes') : matcher === 'sections' ? lowerName.includes('sections') : false
+      const isMatch =
+        matcher === 'classes'
+          ? lowerName.includes('classes')
+          : matcher === 'sections'
+            ? lowerName.includes('sections')
+            : false
+
       return {
         ...item,
         color: isMatch
           ? 'color-mix(in srgb, var(--primary), transparent 0%)'
-          : 'color-mix(in srgb, var(--muted-foreground), transparent 0%)',
-        // zero-out non-match to remove their contribution
-        value: isMatch ? item.value : 0,
+          : 'color-mix(in srgb, var(--muted-foreground), transparent 30%)',
       }
     })
   }, [activeDistTab, auditEntriesRaw.length, classesCount, sectionsCount, incidentsCount])
+
+  const activeDistIndex = useMemo(() => {
+    if (activeDistTab === 'Overview') return null
+    const matcher = activeDistTab.toLowerCase()
+    const idx = analytics.findIndex(item => item.name.toLowerCase().includes(matcher))
+    return idx >= 0 ? idx : null
+  }, [activeDistTab, analytics])
 
 
   const headerActions = (
@@ -746,7 +756,12 @@ export default function AdminDashboard() {
                 <div className="flex flex-col items-center justify-center gap-6">
                   {/* Chart */}
                   <div className="h-52 w-52 relative shrink-0">
-                    <SmoothDonutChart data={analytics} height={200} animateKey={`${statsPulse}-${activeDistTab}`} />
+                    <SmoothDonutChart
+                      data={analytics}
+                      height={200}
+                      animateKey={`${statsPulse}-${activeDistTab}`}
+                      activeIndex={activeDistIndex}
+                    />
                   </div>
 
                   {/* Legend */}

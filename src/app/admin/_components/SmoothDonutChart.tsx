@@ -15,6 +15,7 @@ type SmoothDonutChartProps = {
     innerRadius?: number
     outerRadius?: number
     animateKey?: number | string
+    activeIndex?: number | null
 }
 
 // Helper to calculate arc path
@@ -42,12 +43,14 @@ export function SmoothDonutChart({
     height = 200,
     innerRadius = 60,
     outerRadius = 90,
-    animateKey
+    animateKey,
+    activeIndex = null,
 }: SmoothDonutChartProps) {
-    const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+    const [hoveredIndex, setHoveredIndex] = useState<number | null>(activeIndex ?? null)
+    const effectiveIndex = hoveredIndex ?? activeIndex ?? null
 
     const total = useMemo(() => data.reduce((acc, curr) => acc + curr.value, 0), [data])
-    const currentValue = hoveredIndex !== null ? data[hoveredIndex]?.value ?? 0 : total
+    const currentValue = effectiveIndex !== null ? data[effectiveIndex]?.value ?? 0 : total
 
     const count = useMotionValue(currentValue || 0)
     const rounded = useTransform(count, latest => Math.round(latest).toLocaleString())
@@ -55,7 +58,11 @@ export function SmoothDonutChart({
     React.useEffect(() => {
         const controls = animate(count, currentValue || 0, { duration: 0.6, ease: 'easeOut' })
         return () => controls.stop()
-    }, [count, currentValue, animateKey, hoveredIndex])
+    }, [count, currentValue, animateKey, effectiveIndex])
+
+    React.useEffect(() => {
+        setHoveredIndex(activeIndex ?? null)
+    }, [activeIndex, data, animateKey])
 
     const segments = useMemo(() => {
         let currentAngle = 0
@@ -127,8 +134,8 @@ export function SmoothDonutChart({
                         initial={{ pathLength: 0, opacity: 0, stroke: segment.color }}
                         animate={{
                             pathLength: 1,
-                            opacity: hoveredIndex === null || hoveredIndex === i ? 1 : 0.3,
-                            strokeWidth: hoveredIndex === i ? segment.strokeWidth + 2 : segment.strokeWidth,
+                            opacity: effectiveIndex === null || effectiveIndex === i ? 1 : 0.3,
+                            strokeWidth: effectiveIndex === i ? segment.strokeWidth + 2 : segment.strokeWidth,
                             stroke: segment.color
                         }}
                         transition={{
@@ -138,7 +145,7 @@ export function SmoothDonutChart({
                             stroke: { duration: 0.3 }
                         }}
                         onMouseEnter={() => setHoveredIndex(i)}
-                        onMouseLeave={() => setHoveredIndex(null)}
+                        onMouseLeave={() => setHoveredIndex(activeIndex ?? null)}
                         className="cursor-pointer transition-all"
                     />
                 ))}
@@ -147,7 +154,7 @@ export function SmoothDonutChart({
             {/* Center Text */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <AnimatePresence mode="wait">
-                    {hoveredIndex !== null ? (
+                    {effectiveIndex !== null ? (
                         <motion.div
                             key="hover"
                             initial={{ opacity: 0, y: 5 }}
@@ -159,7 +166,7 @@ export function SmoothDonutChart({
                                 <motion.span>{rounded}</motion.span>
                             </div>
                             <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                                {data[hoveredIndex].name.split(' ')[0]} {/* Show first word or short name */}
+                                {data[effectiveIndex]?.name.split(' ')[0] ?? ''}
                             </div>
                         </motion.div>
                     ) : (

@@ -12,6 +12,7 @@ import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
 import { IconSlideInButton } from '@/components/ui/IconSlideInButton'
 import { ClickSpark } from '@/components/ui/ClickSpark'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 // Reusing the CARD_BASE style from dashboard design system manually since we can't easily import it if it's not exported from a shared index
 const CARD_BASE = 'rounded-xl border border-border bg-card text-card-foreground shadow-sm'
@@ -551,6 +552,9 @@ function LoginInner() {
 
   return (
     <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-4 py-12 sm:px-8 md:px-12 lg:px-16">
+      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+        <ThemeToggle className="bg-card/90 shadow-lg backdrop-blur" />
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

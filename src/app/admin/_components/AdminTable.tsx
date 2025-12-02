@@ -30,7 +30,7 @@ export function AdminTable({
 }: AdminTableProps) {
   return (
     <section className="space-y-3">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto relative">
         <table
           className={`${minWidthClass} relative w-full divide-y divide-border text-sm text-foreground transform-gpu`}
           style={{ willChange: 'transform' }}
@@ -75,7 +75,7 @@ export function AdminTable({
           </tbody>
         </table>
         {!loading && pagination ? (
-          <div className="border-t border-border bg-background/95 px-4 py-3 sm:px-6 sm:static sticky bottom-0 z-20 backdrop-blur-sm">
+          <div className="sticky bottom-0 inset-x-0 z-20 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm sm:static sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:px-6">
             {pagination}
           </div>
         ) : null}

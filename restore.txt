@@ -1,0 +1,855 @@
+      1 -'use client'
+      2 -
+      3 -import React, { useEffect, useMemo, useState
+         } from 'react'
+      4 -import {
+      5 -  TrendingUp,
+      6 -  RefreshCw,
+      7 -  Search,
+      8 -  Link as LinkIcon,
+      9 -  ArrowRight,
+     10 -  MoreHorizontal,
+     11 -  Copy,
+     12 -  Eye,
+     13 -  Layers,
+     14 -  Grid,
+     15 -  AlertCircle,
+     16 -  Users,
+     17 -  User,
+     18 -  GraduationCap,
+     19 -  PlusCircle,
+     20 -  Edit2,
+     21 -  Trash2,
+     22 -  AlertTriangle,
+     23 -  Activity,
+     24 -  BookOpen,
+     25 -  CalendarPlus,
+     26 -  UserPlus,
+     27 -  Upload
+     28 -} from 'lucide-react'
+     29 -import { Button } from '@/components/ui'
+     30 -import { useQuery } from '@tanstack/react-que
+         ry'
+     31 -import { api } from '@/lib/fetcher'
+     32 -import { StatsCard, CardSurface, CARD_BASE, S
+         tatusPill } from './_components/design-system
+         '
+     33 -import { motion, AnimatePresence } from 'fram
+         er-motion'
+     34 -import { AvatarThumbnail } from '@/components
+         /AvatarThumbnail'
+     35 -import { SmoothAreaChart } from './_component
+         s/SmoothAreaChart'
+     36 -import { SmoothDonutChart } from './_componen
+         ts/SmoothDonutChart'
+     37 -import { cn } from '@/lib/utils'
+     38 -import Link from 'next/link'
+     39 -import { useRouter } from 'next/navigation'
+     40 -
+     41 -import {
+     42 -  DropdownMenu,
+     43 -  DropdownMenuContent,
+     44 -  DropdownMenuItem,
+     45 -  DropdownMenuTrigger,
+     46 -} from '@/components/ui/SmoothDropdown'
+     47 -import { Dialog, DialogBody, DialogHeader } f
+         rom '@/components/ui/Dialog'
+     48 -import { AddClassDialog } from './_components
+         /dialogs/AddClassDialog'
+     49 -import { AddSectionDialog } from './_componen
+         ts/dialogs/AddSectionDialog'
+     50 -import { AddUserDialog } from './users/compon
+         ents/dialogs/AddUserDialog'
+     51 -import { ImportClassesDialog } from './_compo
+         nents/dialogs/ImportClassesDialog'
+     52 -import { AnimatedTabs } from './_components/A
+         nimatedTabs'
+     53 -import { AnimatedActionBtn } from '@/componen
+         ts/ui/AnimatedActionBtn'
+     54 -
+     55 -
+     56 -import { useToast } from '@/components/toast'
+     57 -import { inputClasses } from '@/components/ui
+         /Input'
+     58 -
+     59 -/* ------------------------------------------
+         ---------------- */
+     60 -/* Types
+                          */
+     61 -/* ------------------------------------------
+         ---------------- */
+     62 -
+     63 -type AuditEntry = {
+     64 -  id: number
+     65 -  entity: string
+     66 -  entity_id: number
+     67 -  action: string
+     68 -  table_name: string
+     69 -  diff: Record<string, any>
+     70 -  details: Record<string, any>
+     71 -  user_id: string
+     72 -  user_name: string
+     73 -  user_avatar: string
+     74 -  created_at: string
+     75 -  at?: string // fallback
+     76 -}
+     77 -
+     78 -function formatTimeAgo(date: Date | string) {
+     79 -  const d = new Date(date)
+     80 -  const now = new Date()
+     81 -  const diff = Math.max(0, Math.floor((now.ge
+         tTime() - d.getTime()) / 1000))
+     82 -
+     83 -  if (diff < 60) return 'just now'
+     84 -  if (diff < 3600) return `${Math.floor(diff
+         / 60)}m ago`
+     85 -  if (diff < 86400) return `${Math.floor(diff
+          / 3600)}h ago`
+     86 -  return `${Math.floor(diff / 86400)}d ago`
+     87 -}
+     88 -
+     89 -
+     90 -type Section = {
+     91 -  id: number
+     92 -  code: string
+     93 -}
+     94 -
+     95 -type ClassesResponse = {
+     96 -  rows: unknown[]
+     97 -  count: number
+     98 -}
+     99 -
+    100 -const parseAuditTimestamp = (entry: AuditEntr
+         y): number | null => {
+    101 -  const raw = entry.at || entry.created_at
+    102 -  if (!raw) return null
+    103 -  const parsed = Date.parse(raw)
+    104 -  return Number.isFinite(parsed) ? parsed : n
+         ull
+    105 -}
+    106 -
+    107 -const startOfHour = (date: Date) => {
+    108 -  const next = new Date(date)
+    109 -  next.setMinutes(0, 0, 0)
+    110 -  return next
+    111 -}
+    112 -
+    113 -const startOfDay = (date: Date) => {
+    114 -  const next = new Date(date)
+    115 -  next.setHours(0, 0, 0, 0)
+    116 -  return next
+    117 -}
+    118 -
+    119 -const buildActivitySeries = (range: string, e
+         vents: AuditEntry[]) => {
+    120 -  const now = new Date()
+    121 -  const timestamps = events
+    122 -    .map(parseAuditTimestamp)
+    123 -    .filter((ts): ts is number => ts !== null
+         )
+    124 -
+    125 -  type Bucket = {
+    126 -    start: number
+    127 -    end: number
+    128 -    label: string
+    129 -    value: number
+    130 -    events: { id: number; action: string; use
+         r: string; time: string }[]
+    131 -  }
+    132 -  const buckets: Bucket[] = []
+    133 -
+    134 -  const addBucket = (start: Date, end: Date,
+         label: string) =>
+    135 -    buckets.push({ start: start.getTime(), en
+         d: end.getTime(), label, value: 0, events: []
+          })
+    136 -
+    137 -  if (range === '1hr') {
+    138 -    // 5-minute buckets for last hour (12 buc
+         kets)
+    139 -    const endOfCurrentBucket = new Date(now)
+    140 -    endOfCurrentBucket.setSeconds(0, 0)
+    141 -    endOfCurrentBucket.setMinutes(Math.ceil(e
+         ndOfCurrentBucket.getMinutes() / 5) * 5)
+    142 -
+    143 -    for (let i = 11; i >= 0; i--) {
+    144 -      const end = new Date(endOfCurrentBucket
+         .getTime() - i * 5 * 60 * 1000)
+    145 -      const start = new Date(end.getTime() -
+         5 * 60 * 1000)
+    146 -      addBucket(start, end, start.toLocaleTim
+         eString([], { hour: 'numeric', minute: '2-dig
+         it' }))
+    147 -    }
+    148 -  } else if (range === '4hr') {
+    149 -    // 15-minute buckets for last 4 hours (16
+          buckets)
+    150 -    const endOfCurrentBucket = new Date(now)
+    151 -    endOfCurrentBucket.setSeconds(0, 0)
+    152 -    endOfCurrentBucket.setMinutes(Math.ceil(e
+         ndOfCurrentBucket.getMinutes() / 15) * 15)
+    153 -
+    154 -    for (let i = 15; i >= 0; i--) {
+    155 -      const end = new Date(endOfCurrentBucket
+         .getTime() - i * 15 * 60 * 1000)
+    156 -      const start = new Date(end.getTime() -
+         15 * 60 * 1000)
+    157 -      addBucket(start, end, start.toLocaleTim
+         eString([], { hour: 'numeric', minute: '2-dig
+         it' }))
+    158 -    }
+    159 -  } else if (range === '12hr') {
+    160 -    // 30-minute buckets for last 12 hours (2
+         4 buckets)
+    161 -    const endOfCurrentBucket = new Date(now)
+    162 -    endOfCurrentBucket.setSeconds(0, 0)
+    163 -    endOfCurrentBucket.setMinutes(Math.ceil(e
+         ndOfCurrentBucket.getMinutes() / 30) * 30)
+    164 -
+    165 -    for (let i = 23; i >= 0; i--) {
+    166 -      const end = new Date(endOfCurrentBucket
+         .getTime() - i * 30 * 60 * 1000)
+    167 -      const start = new Date(end.getTime() -
+         30 * 60 * 1000)
+    168 -      addBucket(start, end, start.toLocaleTim
+         eString([], { hour: 'numeric', minute: '2-dig
+         it' }))
+    169 -    }
+    170 -  } else if (range === '1d') {
+    171 -    // 1-hour buckets for last 24 hours
+    172 -    const currentHour = startOfHour(now)
+    173 -    for (let i = 23; i >= 0; i -= 1) {
+    174 -      const start = new Date(currentHour)
+    175 -      start.setHours(currentHour.getHours() -
+          i)
+    176 -      const end = new Date(start)
+    177 -      end.setDate(start.getDate() + 1) // Fix
+         : end date should be +1 hour not +1 day for 1
+         d view? No, loop is per hour.
+    178 -      // Actually the logic above was: end.se
+         tHours(start.getHours() + 1)
+    179 -      // Let's stick to the original logic wh
+         ich was correct for 1d
+    180 -      const endBucket = new Date(start)
+    181 -      endBucket.setHours(start.getHours() + 1
+         )
+    182 -      addBucket(start, endBucket, start.toLoc
+         aleTimeString([], { hour: 'numeric', minute:
+         '2-digit' }))
+    183 -    }
+    184 -  } else if (range === '3d') {
+    185 -    // 3-hour buckets for last 3 days (24 buc
+         kets)
+    186 -    const currentHour = startOfHour(now)
+    187 -    // Align to 3-hour block
+    188 -    currentHour.setHours(Math.floor(currentHo
+         ur.getHours() / 3) * 3)
+    189 -
+    190 -    for (let i = 23; i >= 0; i--) {
+    191 -      const start = new Date(currentHour)
+    192 -      start.setHours(currentHour.getHours() -
+          i * 3)
+    193 -      const end = new Date(start)
+    194 -      end.setHours(start.getHours() + 3)
+    195 -      addBucket(start, end, start.toLocaleDat
+         eString([], { weekday: 'short', hour: 'numeri
+         c', minute: '2-digit' }))
+    196 -    }
+    197 -  } else if (range === '7d') {
+    198 -    // 1-day buckets for last 7 days
+    199 -    const today = startOfDay(now)
+    200 -    for (let i = 6; i >= 0; i -= 1) {
+    201 -      const start = new Date(today)
+    202 -      start.setDate(today.getDate() - i)
+    203 -      const end = new Date(start)
+    204 -      end.setDate(start.getDate() + 1)
+    205 -      addBucket(start, end, start.toLocaleDat
+         eString([], { weekday: 'short', month: 'short
+         ', day: 'numeric' }))
+    206 -    }
+    207 -  }
+    208 -
+    209 -  if (buckets.length === 0) return []
+    210 -
+    211 -  // Populate events
+    212 -  for (const entry of events) {
+    213 -    const ts = parseAuditTimestamp(entry)
+    214 -    if (!ts) continue
+    215 -    if (ts < buckets[0].start || ts >= bucket
+         s[buckets.length - 1].end) continue
+    216 -
+    217 -    const bucket = buckets.find(({ start, end
+          }) => ts >= start && ts < end)
+    218 -    if (bucket) {
+    219 -      bucket.value += 1
+    220 -      bucket.events.push({
+    221 -        id: entry.id,
+    222 -        action: entry.action,
+    223 -        user: entry.user_name || 'System',
+    224 -        time: new Date(ts).toLocaleTimeString
+         ([], { hour: 'numeric', minute: '2-digit' })
+    225 -      })
+    226 -    }
+    227 -  }
+    228 -
+    229 -  return buckets.map(({ label, value, events
+         }) => ({
+    230 -    date: label,
+    231 -    value,
+    232 -    events: events.sort((a, b) => b.id - a.id
+         ).slice(0, 5) // Show top 5 newest events
+    233 -  }))
+    234 -}
+    235 -
+    236 -function QuickActionBtn({ icon, label, onClic
+         k, variant = 'secondary' }: { icon: any; labe
+         l: string; onClick: () => void; variant?: 'pr
+         imary' | 'secondary' }) {
+    237 -  return (
+    238 -    <AnimatedActionBtn
+    239 -      icon={icon}
+    240 -      label={label}
+    241 -      onClick={onClick}
+    242 -      variant={variant}
+    243 -      className="w-full justify-start px-4"
+    244 -    />
+    245 -  )
+    246 -}
+    247 -
+    248 -function Spinner() {
+    249 -  return (
+    250 -    <svg
+    251 -      className="h-4 w-4 animate-spin"
+    252 -      viewBox="0 0 24 24"
+    253 -      fill="none"
+    254 -    >
+    255 -      <circle
+    256 -        className="opacity-25"
+    257 -        cx="12"
+    258 -        cy="12"
+    259 -        r="10"
+    260 -        stroke="currentColor"
+    261 -        strokeWidth="4"
+    262 -      />
+    263 -      <path
+    264 -        className="opacity-75"
+    265 -        fill="currentColor"
+    266 -        d="M4 12a8 8 0 018-8v4A4 4 0 008 12H4
+         z"
+    267 -      />
+    268 -    </svg>
+    269 -  )
+    270 -}
+    271 -
+    272 -const floatLabelVariants = {
+    273 -  idle: { y: 14, scale: 1, opacity: 0.7 },
+    274 -  floating: { y: 4, scale: 0.78, opacity: 1 }
+         ,
+    275 -}
+    276 -
+    277 -export default function AdminDashboard() {
+    278 -  const toast = useToast()
+    279 -  const router = useRouter()
+    280 -
+    281 -  // 1. Fetch Classes Count
+    282 -  const { data: classesData, refetch: refetch
+         Classes, isFetching: loadingClasses } = useQu
+         ery({
+    283 -    queryKey: ['classes', 'count'],
+    284 -    queryFn: async () => api<ClassesResponse>
+         ('/api/classes?limit=1'),
+    285 -    refetchOnMount: true,
+    286 -    staleTime: 0,
+    287 -  })
+    288 -
+    289 -  // 2. Fetch Sections
+    290 -  const { data: sectionsData, refetch: refetc
+         hSections, isFetching: loadingSections } = us
+         eQuery({
+    291 -    queryKey: ['sections', 'all'],
+    292 -    queryFn: async () => api<Section[]>('/api
+         /sections'),
+    293 -    refetchOnMount: true,
+    294 -    staleTime: 0,
+    295 -  })
+    296 -
+    297 -  // 3. Fetch Audit Log (Recent Activity)
+    298 -  const { data: auditData, refetch: refetchAu
+         dit, isFetching: loadingAudit } = useQuery({
+    299 -    queryKey: ['audit', 'recent'],
+    300 -    queryFn: async () => api<AuditEntry[]>('/
+         api/audit?limit=50&sort=recent'),
+    301 -    refetchOnMount: true,
+    302 -    staleTime: 0,
+    303 -  })
+    304 -
+    305 -  // 4. Fetch Incidents (Errors)
+    306 -  const { data: incidentsData, refetch: refet
+         chIncidents, isFetching: loadingIncidents } =
+          useQuery({
+    307 -    queryKey: ['audit', 'errors'],
+    308 -    queryFn: async () => api<AuditEntry[]>('/
+         api/audit?action=error&limit=1'),
+    309 -    refetchOnMount: true,
+    310 -    staleTime: 0,
+    311 -  })
+    312 -
+    313 -  const loading = loadingClasses || loadingSe
+         ctions || loadingAudit || loadingIncidents
+    314 -  const initialLoading =
+    315 -    loading ||
+    316 -    classesData === undefined ||
+    317 -    sectionsData === undefined ||
+    318 -    auditData === undefined ||
+    319 -    incidentsData === undefined
+    320 -
+    321 -  const load = () => {
+    322 -    refetchClasses()
+    323 -    refetchSections()
+    324 -    refetchAudit()
+    325 -    refetchIncidents()
+    326 -    setStatsPulse(p => p + 1)
+    327 -  }
+    328 -
+    329 -  // Derived Data
+    330 -  const classesCount = classesData?.count ??
+         0
+    331 -  const sectionsCount = sectionsData?.length
+         ?? 0
+    332 -  const auditEntriesRaw = useMemo(() => audit
+         Data ?? [], [auditData])
+    333 -  const incidentsCount = incidentsData?.lengt
+         h ?? 0
+    334 -
+    335 -  const totalActivity = classesCount + sectio
+         nsCount + auditEntriesRaw.length
+    336 -
+    337 -  const [activeTab, setActiveTab] = useState(
+         '1d')
+    338 -  const [activeDistTab, setActiveDistTab] = u
+         seState('Overview')
+    339 -  const [searchTerm, setSearchTerm] = useStat
+         e('')
+    340 -  const [activityPage, setActivityPage] = use
+         State(1)
+    341 -  const activityPageSize = 6
+    342 -  const [selectedEntry, setSelectedEntry] = u
+         seState<AuditEntry | null>(null)
+    343 -  const [importClassesOpen, setImportClassesO
+         pen] = useState(false)
+    344 -  const [addClassOpen, setAddClassOpen] = use
+         State(false)
+    345 -  const [addSectionOpen, setAddSectionOpen] =
+          useState(false)
+    346 -  const [addUserOpen, setAddUserOpen] = useSt
+         ate(false)
+    347 -  const [statsPulse, setStatsPulse] = useStat
+         e(0)
+    348 -
+    349 -  const toneDotClasses: Record<'success' | 'i
+         nfo' | 'danger' | 'warning', string> = {
+    350 -    success: 'bg-emerald-500',
+    351 -    info: 'bg-sky-500',
+    352 -    danger: 'bg-rose-500',
+    353 -    warning: 'bg-amber-500',
+    354 -  }
+    355 -
+    356 -  const tonePillClasses: Record<'success' | '
+         info' | 'danger' | 'warning', string> = {
+    357 -    success: 'border-emerald-200 bg-emerald-5
+         0 text-emerald-700',
+    358 -    info: 'border-sky-200 bg-sky-50 text-sky-
+         700',
+    359 -    danger: 'border-rose-200 bg-rose-50 text-
+         rose-700',
+    360 -    warning: 'border-amber-200 bg-amber-50 te
+         xt-amber-800',
+    361 -  }
+    362 -
+    363 -  const actionToneClasses: Record<'success' |
+          'info' | 'danger' | 'warning', string> = {
+    364 -    success: 'border-emerald-100 text-emerald
+         -700 bg-emerald-50',
+    365 -    info: 'border-sky-100 text-sky-700 bg-sky
+         -50',
+    366 -    danger: 'border-rose-100 text-rose-700 bg
+         -rose-50',
+    367 -    warning: 'border-amber-100 text-amber-800
+          bg-amber-50',
+    368 -  }
+    369 -
+    370 -  const filteredAuditEntries = useMemo(() =>
+         {
+    371 -    if (!searchTerm) return auditEntriesRaw
+    372 -    const lower = searchTerm.toLowerCase()
+    373 -    return auditEntriesRaw
+    374 -      .filter(entry =>
+    375 -        (entry.entity || '').toLowerCase().in
+         cludes(lower) ||
+    376 -        (entry.table_name || '').toLowerCase(
+         ).includes(lower) ||
+    377 -        (entry.user_name || '').toLowerCase()
+         .includes(lower) ||
+    378 -        (entry.action || '').toLowerCase().in
+         cludes(lower),
+    379 -      )
+    380 -  }, [auditEntriesRaw, searchTerm])
+    381 -
+    382 -  const activityPageCount = Math.max(1, Math.
+         ceil(filteredAuditEntries.length / activityPa
+         geSize))
+    383 -
+    384 -  useEffect(() => {
+    385 -    setActivityPage(1)
+    386 -  }, [searchTerm])
+    387 -
+    388 -  useEffect(() => {
+    389 -    setActivityPage(prev => Math.min(prev, ac
+         tivityPageCount))
+    390 -  }, [activityPageCount])
+    391 -
+    392 -  const auditEntries = useMemo(() => {
+    393 -    const start = (activityPage - 1) * activi
+         tyPageSize
+    394 -    return filteredAuditEntries.slice(start,
+         start + activityPageSize)
+    395 -  }, [activityPage, activityPageSize, filtere
+         dAuditEntries])
+    396 -
+    397 -  const chartData = useMemo(
+    398 -    () => buildActivitySeries(activeTab, audi
+         tEntriesRaw),
+    399 -    [activeTab, auditEntriesRaw],
+    400 -  )
+    401 -
+    402 -  const analytics = useMemo(() => {
+    403 -    const base = [
+    404 -      { name: 'Total classes', value: classes
+         Count, color: 'color-mix(in srgb, var(--prima
+         ry), transparent 0%)' },
+    405 -      { name: 'Total sections', value: sectio
+         nsCount, color: 'color-mix(in srgb, var(--pri
+         mary), transparent 30%)' },
+    406 -      { name: 'Recent actions', value: auditE
+         ntriesRaw.length, color: 'color-mix(in srgb,
+         var(--primary), transparent 60%)' },
+    407 -      {
+    408 -        name: 'Incidents',
+    409 -        value: incidentsCount,
+    410 -        color: incidentsCount > 0 ? 'var(--de
+         structive)' : 'color-mix(in srgb, var(--prima
+         ry), transparent 80%)',
+    411 -      },
+    412 -    ]
+    413 -
+    414 -    if (incidentsCount === 0) {
+    415 -      base[3].color = 'color-mix(in srgb, var
+         (--primary), transparent 80%)'
+    416 -    }
+    417 -
+    418 -    if (activeDistTab === 'Overview') return
+         base
+    419 -
+    420 -    // For specific tabs, highlight the match
+         ing item and dim others
+    421 -    const matcher = activeDistTab.toLowerCase
+         ()
+    422 -    return base.map(item => {
+    423 -      const lowerName = item.name.toLowerCase
+         ()
+    424 -      const isMatch = matcher === 'classes' ?
+          lowerName.includes('classes') : matcher ===
+         'sections' ? lowerName.includes('sections') :
+          false
+    425 -      return {
+    426 -        ...item,
+    427 -        color: isMatch
+    428 -          ? 'color-mix(in srgb, var(--primary
+         ), transparent 0%)'
+    429 -          : 'color-mix(in srgb, var(--muted-f
+         oreground), transparent 0%)',
+    430 -        // zero-out non-match to remove their
+          contribution
+    431 -        value: isMatch ? item.value : 0,
+    432 -      }
+    433 -    })
+    434 -  }, [activeDistTab, auditEntriesRaw.length,
+         classesCount, sectionsCount, incidentsCount])
+    435 -
+    436 -
+    437 -  const headerActions = (
+    438 -    <div className="flex items-center gap-3">
+    439 -      <AnimatedActionBtn
+    440 -        icon={RefreshCw}
+    441 -        label="Reload"
+    442 -        onClick={load}
+    443 -        isLoading={initialLoading}
+    444 -        loadingLabel="Refreshing..."
+    445 -        variant="secondary"
+    446 -        spinner="framer"
+    447 -      />
+    448 -      <motion.p
+    449 -        key={`latency-${statsPulse}`}
+    450 -        className="text-sm font-semibold text-f
+         oreground"
+    451 -        initial={{ opacity: 0, y: 6 }}
+    452 -        animate={{ opacity: 1, y: 0 }}
+    453 -        transition={{ duration: 0.25, ease: 'ea
+         seOut' }}
+    454 -                      >
+    455 -      124 ms
+    456 -    </motion.p>
+    457 -                    </div >
+    458 -                    <div className="space-y-1
+         ">
+    459 -                      <p className="text-[11p
+         x] font-semibold uppercase tracking-[0.08em]
+         text-muted-foreground">Error rate</p>
+    460 -                      <motion.p
+    461 -                        key={`error-${statsPu
+         lse}`}
+    462 -                        className="text-sm fo
+         nt-semibold text-foreground"
+    463 -                        initial={{ opacity: 0
+         , y: 6 }}
+    464 -                        animate={{ opacity: 1
+         , y: 0 }}
+    465 -                        transition={{ duratio
+         n: 0.25, ease: 'easeOut', delay: 0.05 }}
+    466 -                      >
+    467 -                        0.02%
+    468 -                      </motion.p>
+    469 -                    </div>
+    470 -                    <div className="space-y-1
+         ">
+    471 -                      <p className="text-[11p
+         x] font-semibold uppercase tracking-[0.08em]
+         text-muted-foreground">Open incidents</p>
+    472 -                      <motion.p
+    473 -                        key={`open-${statsPul
+         se}-${incidentsCount}`}
+    474 -                        className="text-sm fo
+         nt-semibold text-foreground"
+    475 -                        initial={{ opacity: 0
+         , y: 6 }}
+    476 -                        animate={{ opacity: 1
+         , y: 0 }}
+    477 -                        transition={{ duratio
+         n: 0.25, ease: 'easeOut', delay: 0.1 }}
+    478 -                      >
+    479 -                        {incidentsCount}
+    480 -                      </motion.p>
+    481 -                    </div>
+    482 -                    <div className="space-y-1
+         ">
+    483 -                      <p className="text-[11p
+         x] font-semibold uppercase tracking-[0.08em]
+         text-muted-foreground">Last check</p>
+    484 -                      <motion.p
+    485 -                        key={`last-${statsPul
+         se}`}
+    486 -                        className="text-sm fo
+         nt-semibold text-foreground"
+    487 -                        initial={{ opacity: 0
+         , y: 6 }}
+    488 -                        animate={{ opacity: 1
+         , y: 0 }}
+    489 -                        transition={{ duratio
+         n: 0.25, ease: 'easeOut', delay: 0.15 }}
+    490 -                      >
+    491 -                        2m ago
+    492 -                      </motion.p>
+    493 -                    </div>
+    494 -                  </div >
+    495 -    <div className="pt-4 border-t border-bord
+         er">
+    496 -      <div className="flex items-center justi
+         fy-between text-xs text-muted-foreground">
+    497 -        <span>Uptime</span>
+    498 -        <motion.span
+    499 -          key={`uptime-${statsPulse}`}
+    500 -          className="font-mono text-foregroun
+         d"
+    501 -          initial={{ opacity: 0, y: 6 }}
+    502 -          animate={{ opacity: 1, y: 0 }}
+    503 -          transition={{ duration: 0.25, ease:
+          'easeOut', delay: 0.2 }}
+    504 -        >
+    505 -          99.9%
+    506 -        </motion.span>
+    507 -      </div>
+    508 -    </div>
+    509 -                </div >
+    510 -              </CardSurface >
+    511 -            </div >
+    512 -          </div >
+    513 -        </div >
+    514 -
+    515 -    {/* Audit Log Entry Details Dialog */ }
+    516 -    < Dialog open = { selectedEntry !== null
+    517 -} onOpenChange = {() => setSelectedEntry(null
+         )}>
+    518 -{
+    519 -  selectedEntry?(
+    520 -            <>
+    521 -              <DialogHeader>
+    522 -                <h2 className="text-xl font-s
+         emibold text-foreground">Entry Details</h2>
+    523 -                <p className="mt-1 text-sm te
+         xt-muted-foreground">
+    524 -                  Complete snapshot of this a
+         udit log entry.
+    525 -                </p>
+    526 -              </DialogHeader>
+    527 -              <DialogBody>
+    528 -                <div className="grid gap-5">
+    529 -                  <div className="grid gap-4
+         sm:grid-cols-2">
+    530 -                    <div className="space-y-2
+         ">
+    531 -                      <label className="text-
+         sm font-medium text-foreground">Log ID</label
+         >
+    532 -                      <div className="w-full
+         rounded-lg border border-input bg-muted/50 px
+         -3 py-2 text-sm text-foreground">
+    533 -                        {selectedEntry.id}
+    534 -                      </div>
+    535 -                    </div>
+    536 -                    <div className="space-y-2
+         ">
+    537 -                      <label className="text-
+         sm font-medium text-foreground">Timestamp</la
+         bel>
+    538 -                      <div className="w-full
+         rounded-lg border border-input bg-muted/50 px
+         -3 py-2 text-sm text-foreground">
+    539 -                        {new Date(selectedEnt
+         ry.at || selectedEntry.created_at || '').toLo
+         caleString()}
+    540 -                      </div>
+    541 -                    </div>
+    542 -                  </div>
+    543 -
+    544 -                  <div className="grid gap-4
+         sm:grid-cols-2">
+    545 -                    <div className="space-y-2
+         ">
+    546 -                      <label className="text-
+         sm font-medium text-foreground">User</label>
+    547 -                      <div className="flex w-
+         full items-center gap-2 rounded-lg border bor
+         der-input bg-muted/50 px-3 py-2 text-sm text-
+         foreground">
+    548 -                        <AvatarThumbnail
+    549 -                          name={selectedEntry
+         .user_name}
+    550 -                          src={selectedEntry.
+         user_avatar}
+    551 -                          size="sm"
+    552 -                          className="!h-5 !w-
+         5 text-[10px]"
+    553 -                        />
+    554 -                        <span>{selectedEntry.
+         user_name || 'System'}</span>
+    555 -                      </div>
+    556 -                    </div>
+    557 -                    <div className="space-y-2
+         ">
+    558 -                      <label className="text-
+         sm font-medium text-foreground">Action</label
+         >
+    559 -                      <div className="w-full
+         rounded-lg border border-input bg-muted/50 px
+         -3 py-2 text-sm text-foreground capitalize">
+    560 -                        {selectedEntry.action
+         }
+    561 -                      </div>
+    562 -                    </div>
+    563 -                  </div>
+    564 -
+    565 -                  <div className="space-y-2">
+    566 -                    <label className="text-sm
+          font-medium text-foreground">Entity</label>
+    567 -                    <div className="w-full ro
+         unded-lg border border-input bg-muted/50 px-3
+          py-2 text-sm text-foreground">
+    568 -                      {selectedEntry.table_na
+         me || selectedEntry.entity || 'System'}
+    569 -                    </div>
+    570 -                  </div>
+    571 -
+    572 -                  <div className="space-y-2">
+    573 -                    <label className="text-sm
+          font-medium text-foreground">Change Data</la
+         bel>
+    574 -                    <div className="w-full ro
+         unded-lg border border-input bg-muted/50 px-3
+          py-2 text-sm font-mono text-foreground overf
+         low-auto max-h-[200px]">
+    575 -                      <pre className="whitesp
+         ace-pre-wrap break-all">
+    576 -                        {JSON.stringify(selec
+         tedEntry.details || {}, null, 2)}
+    577 -                      </pre>
+    578 -                    </div>
+    579 -                  </div>
+    580 -
+    581 -                  <div className="flex justif
+         y-end pt-2">
+    582 -                    <Button
+    583 -                      type="button"
+    584 -                      variant="secondary"
+    585 -                      onClick={() => setSelec
+         tedEntry(null)}
+    586 -                      className="px-4"
+    587 -                    >
+    588 -                      Close
+    589 -                    </Button>
+    590 -                  </div>
+    591 -                </div>
+    592 -              </DialogBody>
+    593 -            </>
+    594 -          ) : null}
+    595 -        </Dialog >
+    596 -
+    597 -  {/* Action Dialogs */ }
+    598 -  < AddClassDialog
+    599 -open = { addClassOpen }
+    600 -onOpenChange = { setAddClassOpen }
+    601 -onCreated = { load }
+    602 -sections = { sectionsData ?? []}
+    603 -instructors = { []} // You might need to fetc
+         h instructors or pass empty if not available
+         in dashboard
+    604 -  />
+    605 -        <AddSectionDialog
+    606 -          open={addSectionOpen}
+    607 -          onOpenChange={setAddSectionOpen}
+    608 -          onCreated={load}
+    609 -        />
+    610 -        <AddUserDialog
+    611 -          open={addUserOpen}
+    612 -          onOpenChange={setAddUserOpen}
+    613 -          onUserCreated={load}
+    614 -        />
+    615 -        <ImportClassesDialog
+    616 -          open={importClassesOpen}
+    617 -          onClose={() => setImportClassesOpen
+         (false)}
+    618 -          sections={sectionsData ?? []}
+    619 -          instructors={[]} // Passing empty i
+         nstructors for now as dashboard doesn't fetch
+          them.
+    620 -                           // If needed, we s
+         hould add a query for instructors.
+    621 -          onImported={() => {
+    622 -            load()
+    623 -            toast({ kind: 'success', msg: 'Cl
+         asses imported successfully' })
+    624 -          }}
+    625 -        />
+    626 -      </div >
+    627 -    </div >
+    628 -  )
+    629 -}

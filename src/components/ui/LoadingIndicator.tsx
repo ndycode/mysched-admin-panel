@@ -1,19 +1,19 @@
 import React from 'react'
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
 
 type LoadingIndicatorProps = {
   label?: string
   className?: string
 }
 
-const dotVariants = {
+const dotVariants: Variants = {
   animate: {
     y: [0, -4, 0],
     opacity: [0.5, 1, 0.5],
     transition: {
       duration: 0.8,
       repeat: Infinity,
-      ease: 'easeInOut',
+      ease: [0.42, 0, 0.58, 1],
     },
   },
 }

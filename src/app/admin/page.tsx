@@ -481,7 +481,7 @@ export default function AdminDashboard() {
 
 
   const headerActions = (
-    <div className="flex items-center gap-3">
+    <div className="hidden items-center gap-3 sm:flex">
       <AnimatedActionBtn
         icon={RefreshCw}
         label="Reload"

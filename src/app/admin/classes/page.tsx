@@ -486,39 +486,70 @@ export default function ClassesPage() {
   ].filter((f): f is string => f !== null)
 
   const headerActions = (
-    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-      <AnimatedActionBtn
-        icon={Download}
-        label="Export"
-        onClick={handleExport}
-        disabled={exporting}
-        isLoading={exporting}
-        loadingLabel="Preparing..."
-        variant="secondary"
-      />
-      <AnimatedActionBtn
-        icon={RefreshCw}
-        label="Reload"
-        onClick={handleManualRefresh}
-        disabled={classesQuery.isFetching}
-        isLoading={reloadSpinning}
-        loadingLabel="Reloading..."
-        variant="secondary"
-        spinner="framer"
-      />
-      <AnimatedActionBtn
-        icon={Upload}
-        label="Import from image"
-        onClick={() => setImportOpen(true)}
-        variant="primary"
-      />
-      <AnimatedActionBtn
-        icon={Plus}
-        label="Add Class"
-        onClick={() => setAddOpen(true)}
-        variant="primary"
-      />
-    </div>
+    <>
+      {/* Desktop / Tablet layout */}
+      <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <AnimatedActionBtn
+          icon={Download}
+          label="Export"
+          onClick={handleExport}
+          disabled={exporting}
+          isLoading={exporting}
+          loadingLabel="Preparing..."
+          variant="secondary"
+        />
+        <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={handleManualRefresh}
+          disabled={classesQuery.isFetching}
+          isLoading={reloadSpinning}
+          loadingLabel="Reloading..."
+          variant="secondary"
+          spinner="framer"
+        />
+        <AnimatedActionBtn
+          icon={Upload}
+          label="Import from image"
+          onClick={() => setImportOpen(true)}
+          variant="primary"
+        />
+        <AnimatedActionBtn
+          icon={Plus}
+          label="Add Class"
+          onClick={() => setAddOpen(true)}
+          variant="primary"
+        />
+      </div>
+
+      {/* Mobile layout */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        <AnimatedActionBtn
+          icon={Plus}
+          label="Add Class"
+          onClick={() => setAddOpen(true)}
+          variant="primary"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
+          icon={Upload}
+          label="Import from image"
+          onClick={() => setImportOpen(true)}
+          variant="primary"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
+          icon={Download}
+          label="Export"
+          onClick={handleExport}
+          disabled={exporting}
+          isLoading={exporting}
+          loadingLabel="Preparing..."
+          variant="secondary"
+          className="w-full justify-center"
+        />
+      </div>
+    </>
   )
 
   return (

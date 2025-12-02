@@ -465,13 +465,62 @@ export default function AuditLogPage() {
   }, [loadLogs, resetting, toast])
 
   const headerActions = (
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-      <div className="flex flex-wrap gap-2">
+    <>
+      {/* Desktop / Tablet */}
+      <div className="hidden flex-col gap-2 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <AnimatedActionBtn
+            icon={Calendar}
+            label={rangeLabel}
+            onClick={handleOpenDateRange}
+            variant="secondary"
+          />
+          {hasDateRange ? (
+            <AnimatedActionBtn
+              icon={X}
+              label="Clear"
+              onClick={handleClearDateRange}
+              variant="secondary"
+            />
+          ) : null}
+          <AnimatedActionBtn
+            icon={RefreshCw}
+            label="Reload"
+            onClick={() => void loadLogs()}
+            isLoading={loading}
+            loadingLabel="Reloading..."
+            variant="secondary"
+            spinner="framer"
+          />
+          <AnimatedActionBtn
+            icon={Download}
+            label="Export Logs"
+            onClick={handleExportLogs}
+            variant="secondary"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <AnimatedActionBtn
+            icon={Trash2}
+            label="Reset log"
+            onClick={() => setResetDialogOpen(true)}
+            isLoading={resetting}
+            loadingLabel="Resetting..."
+            variant="secondary"
+            className="bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20 hover:text-destructive"
+          />
+        </div>
+      </div>
+
+      {/* Mobile */}
+      <div className="flex flex-col gap-2 sm:hidden">
         <AnimatedActionBtn
           icon={Calendar}
           label={rangeLabel}
           onClick={handleOpenDateRange}
           variant="secondary"
+          className="w-full justify-center"
         />
         {hasDateRange ? (
           <AnimatedActionBtn
@@ -479,26 +528,16 @@ export default function AuditLogPage() {
             label="Clear"
             onClick={handleClearDateRange}
             variant="secondary"
+            className="w-full justify-center"
           />
         ) : null}
-        <AnimatedActionBtn
-          icon={RefreshCw}
-          label="Reload"
-          onClick={() => void loadLogs()}
-          isLoading={loading}
-          loadingLabel="Reloading..."
-          variant="secondary"
-          spinner="framer"
-        />
         <AnimatedActionBtn
           icon={Download}
           label="Export Logs"
           onClick={handleExportLogs}
-          variant="secondary"
+          variant="primary"
+          className="w-full justify-center"
         />
-      </div>
-
-      <div className="flex flex-wrap gap-2">
         <AnimatedActionBtn
           icon={Trash2}
           label="Reset log"
@@ -506,10 +545,10 @@ export default function AuditLogPage() {
           isLoading={resetting}
           loadingLabel="Resetting..."
           variant="secondary"
-          className="bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20 hover:text-destructive"
+          className="w-full justify-center bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20 hover:text-destructive"
         />
       </div>
-    </div>
+    </>
   )
 
   const isRefined = Boolean(search.trim()) || actionFilter !== 'all' || tableFilter !== 'all' || hasDateRange

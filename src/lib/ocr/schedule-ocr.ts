@@ -30,8 +30,8 @@ const GeminiEnvSchema = z.object({
 })
 
 // Default to a stable, vision-capable model on v1beta API (2.5)
-const DEFAULT_MODEL = 'gemini-1.5-flash'
-const DEFAULT_FALLBACK_MODEL = 'gemini-1.5-flash'
+const DEFAULT_MODEL = 'gemini-2.5-flash'
+const DEFAULT_FALLBACK_MODEL = 'gemini-2.5-flash'
 
 function normalizeModelName(raw: string | undefined | null): string | null {
   if (!raw) return null

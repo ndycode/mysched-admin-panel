@@ -195,8 +195,11 @@ export function AdminLayoutShell({ greeting, displayName, initial, avatarUrl, em
             </div>
 
             <main className="relative flex-1 bg-background focus:outline-none">
-              {/* Theme toggle, pinned to the same top-right spot as before */}
-              <div className="pointer-events-none fixed right-4 top-4 sm:right-6 sm:top-6 z-[70]">
+              {/* Theme toggle: desktop top-right, mobile bottom-right */}
+              <div className="pointer-events-none fixed right-4 top-4 z-[70] sm:right-6 sm:top-6 hidden md:block">
+                <ThemeToggle className="pointer-events-auto shadow-lg bg-card/95" />
+              </div>
+              <div className="pointer-events-none fixed bottom-4 right-4 z-[70] sm:bottom-6 sm:right-6 md:hidden">
                 <ThemeToggle className="pointer-events-auto shadow-lg bg-card/95" />
               </div>
               <div className="relative z-10 flex min-h-full flex-col p-4 sm:p-6 lg:p-8">

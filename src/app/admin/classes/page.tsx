@@ -566,7 +566,7 @@ export default function ClassesPage() {
 
         <div className="space-y-6">
           {/* Stats Grid (mobile first) */}
-          <div className="order-1 grid gap-4 sm:order-none sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+          <div className="order-1 grid grid-cols-2 gap-3 sm:order-none sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
             <StatsCard
               icon={Layers}
               label="Total Classes"

@@ -187,11 +187,15 @@ export function AdminLayoutShell({ greeting, displayName, initial, avatarUrl, em
           <div className="relative flex min-h-screen min-w-0 flex-1 flex-col">
 
             {/* Mobile Header */}
-            <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
-              <span className="font-semibold">MySched Admin</span>
-              <button onClick={() => setMobileMenuOpen(true)}>
-                <Menu className="h-6 w-6" />
+            <div className="relative flex items-center justify-center border-b border-border bg-card px-4 py-3 md:hidden">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="absolute left-4 inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Open navigation</span>
               </button>
+              <span className="text-base font-semibold text-primary">MySched</span>
             </div>
 
             <main className="relative flex-1 bg-background focus:outline-none">

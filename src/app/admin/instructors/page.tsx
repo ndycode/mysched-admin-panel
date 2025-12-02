@@ -469,7 +469,7 @@ export default function InstructorsPage() {
                       options={PAGE_SIZE_OPTIONS}
                     />
                   </div>
-                  <div className="flex items-center gap-2 w-full justify-end sm:w-auto sm:justify-start">
+                  <div className="flex items-center gap-2 ml-auto">
                     <Button
                       type="button"
                       variant="secondary"

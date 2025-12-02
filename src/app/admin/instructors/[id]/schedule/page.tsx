@@ -312,7 +312,7 @@ export default function InstructorSchedulePage() {
                       </span>
                       <span className="hidden text-sm text-muted-foreground sm:inline">Rows per page: {pageSize}</span>
                     </div>
-                    <div className="flex items-center gap-2 w-full justify-end sm:w-auto sm:justify-start">
+                    <div className="flex items-center gap-2 ml-auto">
                       <Button
                         type="button"
                         variant="secondary"
@@ -398,7 +398,7 @@ export default function InstructorSchedulePage() {
                       </span>
                       <span className="hidden text-sm text-muted-foreground sm:inline">Rows per page: {pageSize}</span>
                     </div>
-                    <div className="flex items-center gap-2 w-full justify-end sm:w-auto sm:justify-start">
+                    <div className="flex items-center gap-2 ml-auto">
                       <Button
                         type="button"
                         variant="secondary"

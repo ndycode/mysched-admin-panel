@@ -920,7 +920,7 @@ export default function SectionsPage() {
                       options={[10, 20, 50, 100]}
                     />
                   </div>
-                  <div className="flex items-center gap-2 w-full justify-end sm:w-auto sm:justify-start">
+                  <div className="flex items-center gap-2 ml-auto">
                     <Button
                       type="button"
                       variant="secondary"

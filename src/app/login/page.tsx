@@ -551,198 +551,168 @@ function LoginInner() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-background via-background/95 to-background text-foreground">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-28 top-[-140px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.22),transparent_55%)] blur-3xl" />
-        <div className="absolute right-[-180px] bottom-[-180px] h-[460px] w-[460px] rounded-full bg-[radial-gradient(circle_at_center,rgba(251,146,60,0.22),transparent_55%)] blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(255,255,255,0.06),transparent_25%),radial-gradient(circle_at_80%_0%,rgba(59,130,246,0.08),transparent_22%)]" />
-      </div>
-
-      <div className="absolute left-4 top-4 z-20 flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] shadow-lg backdrop-blur sm:left-6 sm:top-6">
-        <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_0_6px_rgba(59,130,246,0.25)]" />
-        MySched Admin
-      </div>
-
+    <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-4 py-12 sm:px-8 md:px-12 lg:px-16">
       <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
         <ThemeToggle className="bg-card/90 shadow-lg backdrop-blur" />
       </div>
-
-      <div className="relative z-10 mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-4 py-14 sm:px-8 md:px-12 lg:flex-row lg:items-stretch">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="relative grid w-full overflow-hidden rounded-3xl border border-border/60 bg-card/85 shadow-2xl backdrop-blur-xl lg:grid-cols-2"
-        >
-          {/* Left Side - Hero/Brand */}
-          <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-primary/90 via-indigo-600/75 to-slate-900/70 p-12 text-primary-foreground lg:flex">
-            <div className="absolute inset-0 opacity-35">
-              <div className="absolute -left-10 top-10 h-36 w-36 rounded-full bg-white/15 blur-3xl" />
-              <div className="absolute right-6 bottom-6 h-28 w-28 rounded-full bg-black/25 blur-2xl" />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_60%,rgba(14,165,233,0.18),transparent_35%)]" />
-            </div>
-
-            <div className="relative z-10 space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em]">
-                Secure Access
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_0_6px_rgba(16,185,129,0.2)]" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold leading-tight tracking-tight">Welcome back, admin</h1>
-                <p className="mt-3 text-base text-primary-foreground/80">
-                  Keep the schedule humming — review classes, instructors, and notifications from a single control room.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-white/20 bg-white/10 p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-primary-foreground/70">Uptime</p>
-                  <p className="mt-2 text-2xl font-semibold">99.98%</p>
-                  <p className="text-xs text-primary-foreground/70">last 30 days</p>
-                </div>
-                <div className="rounded-2xl border border-white/20 bg-white/10 p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-primary-foreground/70">Log events</p>
-                  <p className="mt-2 text-2xl font-semibold">1.2k</p>
-                  <p className="text-xs text-primary-foreground/70">today</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative z-10 mt-8 flex items-center gap-3 text-sm text-primary-foreground/80">
-              <span className="inline-flex h-9 items-center rounded-full bg-white/10 px-3 text-[12px] font-semibold uppercase tracking-[0.12em]">
-                Immaculate Conception Institutions
-              </span>
-              <span className="hidden text-primary-foreground/70 xl:inline-flex">Authorized personnel only</span>
-            </div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className={cn(CARD_BASE, "relative z-10 grid w-full max-w-[1000px] grid-cols-1 overflow-hidden lg:grid-cols-2 p-0 border-border")}
+      >
+        {/* Left Side - Hero/Brand */}
+        <div className="relative hidden flex-col justify-between overflow-hidden bg-primary p-12 text-primary-foreground lg:flex">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-20">
+            <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path d="M0 100 C 20 0 50 0 100 100 Z" fill="currentColor" />
+            </svg>
           </div>
 
-          {/* Right Side - Login Form */}
-          <div className="relative flex flex-col justify-center gap-8 p-8 sm:p-12">
-            <div className="absolute inset-x-6 top-4 h-24 rounded-3xl bg-gradient-to-r from-primary/10 via-transparent to-primary/5 blur-3xl" aria-hidden />
-            <div className="relative space-y-3 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Admin Control
+          <div className="relative z-10">
+            <div className="mb-2 flex items-center gap-2 text-lg font-medium opacity-90">
+              MySched
+            </div>
+            <h1 className="mt-8 text-4xl font-bold leading-tight tracking-tight">
+              Admin Portal
+            </h1>
+            <p className="mt-4 text-lg text-primary-foreground/80">
+              Immaculate Conception Institutions
+            </p>
+          </div>
+
+          <div className="relative z-10 flex items-center gap-4 text-sm font-medium text-primary-foreground/80">
+            <span>Authorized Personnel Only</span>
+          </div>
+        </div>
+
+        {/* Right Side - Login Form */}
+        <div className="flex flex-col justify-center p-8 sm:p-12 lg:p-16">
+          <div className="mb-8 text-center lg:text-left">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+              Welcome back
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Please enter your details to sign in.
+            </p>
+          </div>
+
+          {/* Status Messages */}
+          <div className="space-y-3">
+            {reason ? (
+              <div className="rounded-xl border border-amber-300/60 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/50 dark:bg-amber-950/40 dark:text-amber-100" role="alert">
+                Access denied: {reason}
               </div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">Sign in to continue</h2>
-              <p className="text-sm text-muted-foreground">
-                Verify your credentials to access schedules, users, and system configuration.
+            ) : null}
+
+            {envStatusError ? (
+              <div className="rounded-xl border border-red-300/60 bg-red-50/80 px-4 py-3 text-sm text-red-900 dark:border-red-400/50 dark:bg-red-950/40 dark:text-red-100" role="alert">
+                Unable to confirm Supabase environment status. {envStatusError}
+              </div>
+            ) : null}
+
+            {formError ? (
+              <div className="rounded-xl border border-red-300/60 bg-red-50/80 px-4 py-3 text-sm text-red-900 dark:border-red-400/50 dark:bg-red-950/40 dark:text-red-100" role="alert">
+                {formError}
+              </div>
+            ) : null}
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-6" noValidate>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="relative">
+                  <motion.label
+                    variants={labelVariants}
+                    initial="idle"
+                    animate={emailFocused || email ? 'floating' : 'idle'}
+                    className="absolute left-6 z-10 text-muted-foreground pointer-events-none origin-left top-0"
+                  >
+                    Email
+                  </motion.label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    disabled={loading}
+                    autoComplete="email"
+                    className={cn(
+                      "flex h-14 w-full rounded-full border-2 border-input bg-background/50 px-6 pb-3 pt-7 text-sm ring-offset-background transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-transparent! focus:placeholder:text-muted-foreground! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                      errors.email && "border-destructive focus-visible:ring-destructive"
+                    )}
+                    placeholder="name@example.com"
+                  />
+                </div>
+                {errors.email ? (
+                  <p className="text-sm font-medium text-destructive animate-in slide-in-from-left-1 fade-in">
+                    {errors.email}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <div className="relative">
+                  <motion.label
+                    variants={labelVariants}
+                    initial="idle"
+                    animate={passwordFocused || password ? 'floating' : 'idle'}
+                    className="absolute left-6 z-10 text-muted-foreground pointer-events-none origin-left top-0"
+                  >
+                    Password
+                  </motion.label>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    disabled={loading}
+                    autoComplete="current-password"
+                    className={cn(
+                      "flex h-14 w-full rounded-full border-2 border-input bg-background/50 px-6 pb-3 pt-7 pr-14 text-sm ring-offset-background transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-transparent! focus:placeholder:text-muted-foreground! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                      errors.password && "border-destructive focus-visible:ring-destructive"
+                    )}
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {errors.password ? (
+                  <p className="text-sm font-medium text-destructive animate-in slide-in-from-left-1 fade-in">
+                    {errors.password}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="pt-2 space-y-4">
+              <IconSlideInButton
+                type="submit"
+                label="Sign in"
+                icon={ArrowRight}
+                isLoading={loading}
+                loadingLabel="Signing in..."
+                variant="primary"
+                className="h-14 w-full justify-center rounded-full text-lg font-semibold shadow-xl shadow-primary/20"
+              />
+              <p className="text-center text-sm text-muted-foreground">
+                Having trouble? Contact the platform administrator to reset your access.
               </p>
             </div>
-
-            <div className="relative space-y-3">
-              {reason ? (
-                <div className="rounded-xl border border-amber-300/60 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-400/50 dark:bg-amber-950/40 dark:text-amber-100" role="alert">
-                  Access denied: {reason}
-                </div>
-              ) : null}
-
-              {envStatusError ? (
-                <div className="rounded-xl border border-red-300/60 bg-red-50/80 px-4 py-3 text-sm text-red-900 shadow-sm dark:border-red-400/50 dark:bg-red-950/40 dark:text-red-100" role="alert">
-                  Unable to confirm Supabase environment status. {envStatusError}
-                </div>
-              ) : null}
-
-              {formError ? (
-                <div className="rounded-xl border border-red-300/60 bg-red-50/80 px-4 py-3 text-sm text-red-900 shadow-sm dark:border-red-400/50 dark:bg-red-950/40 dark:text-red-100" role="alert">
-                  {formError}
-                </div>
-              ) : null}
-            </div>
-
-            <form onSubmit={onSubmit} className="space-y-6" noValidate>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="relative">
-                    <motion.label
-                      variants={labelVariants}
-                      initial="idle"
-                      animate={emailFocused || email ? 'floating' : 'idle'}
-                      className="pointer-events-none absolute left-6 top-0 z-10 origin-left text-muted-foreground"
-                    >
-                      Email
-                    </motion.label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onFocus={() => setEmailFocused(true)}
-                      onBlur={() => setEmailFocused(false)}
-                      disabled={loading}
-                      autoComplete="email"
-                      className={cn(
-                        "flex h-14 w-full rounded-2xl border border-border bg-background/70 px-6 pb-3 pt-7 text-sm shadow-[0_10px_30px_rgba(0,0,0,0.05)] ring-offset-background transition-all focus:border-primary focus:bg-background focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60",
-                        errors.email && "border-destructive focus-visible:ring-destructive"
-                      )}
-                      placeholder="name@example.com"
-                    />
-                  </div>
-                  {errors.email ? (
-                    <p className="text-sm font-medium text-destructive animate-in slide-in-from-left-1 fade-in">
-                      {errors.email}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="relative">
-                    <motion.label
-                      variants={labelVariants}
-                      initial="idle"
-                      animate={passwordFocused || password ? 'floating' : 'idle'}
-                      className="pointer-events-none absolute left-6 top-0 z-10 origin-left text-muted-foreground"
-                    >
-                      Password
-                    </motion.label>
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onFocus={() => setPasswordFocused(true)}
-                      onBlur={() => setPasswordFocused(false)}
-                      disabled={loading}
-                      autoComplete="current-password"
-                      className={cn(
-                        "flex h-14 w-full rounded-2xl border border-border bg-background/70 px-6 pb-3 pt-7 pr-14 text-sm shadow-[0_10px_30px_rgba(0,0,0,0.05)] ring-offset-background transition-all focus:border-primary focus:bg-background focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60",
-                        errors.password && "border-destructive focus-visible:ring-destructive"
-                      )}
-                      placeholder="Enter your password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                  {errors.password ? (
-                    <p className="text-sm font-medium text-destructive animate-in slide-in-from-left-1 fade-in">
-                      {errors.password}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-2">
-                <IconSlideInButton
-                  type="submit"
-                  label="Sign in"
-                  icon={ArrowRight}
-                  isLoading={loading}
-                  loadingLabel="Signing in..."
-                  variant="primary"
-                  className="h-14 w-full justify-center rounded-2xl text-lg font-semibold shadow-xl shadow-primary/25"
-                />
-                <p className="text-center text-sm text-muted-foreground">
-                  Having trouble? Contact the platform administrator to reset your access.
-                </p>
-              </div>
-            </form>
-          </div>
-        </motion.div>
-      </div>
+          </form>
+        </div>
+      </motion.div>
     </main>
   )
 }

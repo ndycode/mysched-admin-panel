@@ -10,6 +10,7 @@ export function CustomCursor() {
     const [isHovering, setIsHovering] = useState(false)
     const [isVisible, setIsVisible] = useState(false)
     const [isClicking, setIsClicking] = useState(false)
+    const [isTouchMode, setIsTouchMode] = useState(false)
 
     const cursorX = useMotionValue(-100)
     const cursorY = useMotionValue(-100)
@@ -24,6 +25,27 @@ export function CustomCursor() {
     const hasBuildError = false
 
     useEffect(() => {
+        const checkTouchMode = () => {
+            const hasCoarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches
+            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+            setIsTouchMode(Boolean(hasCoarsePointer || hasTouch || window.innerWidth < 768))
+        }
+
+        checkTouchMode()
+        const resizeHandler = () => checkTouchMode()
+        window.addEventListener('resize', resizeHandler)
+        const mq = window.matchMedia?.('(pointer: coarse)')
+        mq?.addEventListener?.('change', checkTouchMode)
+
+        return () => {
+            window.removeEventListener('resize', resizeHandler)
+            mq?.removeEventListener?.('change', checkTouchMode)
+        }
+    }, [])
+
+    useEffect(() => {
+        if (isTouchMode) return
+
         const moveCursor = (e: MouseEvent) => {
             cursorX.set(e.clientX)
             cursorY.set(e.clientY)
@@ -92,9 +114,9 @@ export function CustomCursor() {
             })
             observer.disconnect()
         }
-    }, [cursorX, cursorY, isVisible])
+    }, [cursorX, cursorY, isVisible, isTouchMode])
 
-    if (hasBuildError) return null
+    if (hasBuildError || isTouchMode) return null
 
     return (
         <>

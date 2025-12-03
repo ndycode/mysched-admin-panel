@@ -52,12 +52,10 @@ if (typeof globalThis.PointerEvent === 'undefined') {
 }
 
 // Ensure React is available for classic JSX transforms in test mocks
-// @ts-expect-error attaching for tests
 globalThis.React = React
 
 // Basic matchMedia shim for components using media queries
 if (!window.matchMedia) {
-  // @ts-expect-error test shim
   window.matchMedia = vi.fn().mockImplementation(query => ({
     matches: false,
     media: query,

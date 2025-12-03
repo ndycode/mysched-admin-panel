@@ -44,7 +44,7 @@ export function DeleteConfirmationDialog({
         if (!next && onCancel) onCancel()
     }
     return (
-        <Dialog open={open} onOpenChange={close} className="max-w-md" initialFocus={confirmButtonRef}>
+        <Dialog open={open} onOpenChange={close} className="max-w-md" initialFocus={confirmButtonRef as React.RefObject<HTMLElement>}>
             <DialogHeader>
                 <h2 className="text-xl font-semibold text-foreground">{title}</h2>
                 {resolvedDescription ? <p className="mt-1 text-sm text-muted-foreground">{resolvedDescription}</p> : null}

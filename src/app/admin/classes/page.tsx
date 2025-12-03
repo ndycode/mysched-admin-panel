@@ -933,11 +933,9 @@ export default function ClassesPage() {
         />
         <EditClassDialog
           open={editDialogOpen}
-          row={editingClass}
-          onClose={() => setEditDialogOpen(false)}
-          sections={sections}
-          instructors={instructors}
-          onSaved={handleClassUpdated}
+          classData={editingClass}
+          onOpenChange={setEditDialogOpen}
+          onUpdated={handleClassUpdated}
         />
         <ViewClassDialog
           open={viewDialogOpen}

@@ -86,10 +86,16 @@ export function EditClassDialog({
     useEffect(() => {
         if (!open) return
         api('/api/sections')
-            .then((rows: Section[]) => setSections(rows ?? []))
+            .then((rows) => {
+                const sectionRows = (rows as Section[]) ?? []
+                setSections(sectionRows)
+            })
             .catch(() => setSections([]))
         api('/api/instructors')
-            .then((resp: { rows: InstructorSummary[] }) => setInstructors(resp?.rows ?? []))
+            .then((resp) => {
+                const instructorRows = (resp as { rows?: InstructorSummary[] })?.rows ?? []
+                setInstructors(instructorRows)
+            })
             .catch(() => setInstructors([]))
     }, [open])
 

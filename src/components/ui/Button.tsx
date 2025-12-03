@@ -53,12 +53,6 @@ export function buttonClasses({
   )
 }
 
-type ButtonProps = HTMLMotionProps<'button'> & {
-  variant?: ButtonVariant
-  size?: ButtonSize
-  loading?: boolean
-}
-
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', disabled, loading = false, onClick, type = 'button', ...props }, ref) => {
     const computedDisabled = disabled || loading

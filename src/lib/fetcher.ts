@@ -10,8 +10,13 @@ import { normalizeApiError, normalizeErrorResponse } from './api-error-client'
  * @throws {Error} If the response is not OK or contains error details.
  */
 export async function api<T = unknown>(input: RequestInfo | URL, init: RequestInit = {}): Promise<T> {
+  const normalizedInput =
+    typeof input === 'string'
+      ? input.trim().replace(/\s*\/\s*/g, '/')
+      : input
+
   const hasBody = init.body !== undefined
-  const res = await fetch(input, {
+  const res = await fetch(normalizedInput, {
     credentials: 'same-origin',
     ...init,
     headers: {

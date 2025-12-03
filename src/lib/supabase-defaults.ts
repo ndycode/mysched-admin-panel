@@ -81,7 +81,7 @@ export function shouldUseLocalSupabaseDefaults(
   }
 
   if (isProd) {
-    return env.SUPABASE_ALLOW_LOCAL_DEFAULTS === '1'
+    return false
   }
 
   return true

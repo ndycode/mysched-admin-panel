@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/authz'
 import { audit, auditError } from '@/lib/audit'
 import { extractStatus } from '@/lib/api-error'
 import { logErr } from '@/lib/log'
+import { z } from 'zod'
 
 function json<T>(data: T, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -15,6 +16,52 @@ function json<T>(data: T, status = 200) {
       'Referrer-Policy': 'same-origin',
     },
   })
+}
+
+const SectionPatchSchema = z.object({
+  code: z.string().trim().min(1).optional(),
+  title: z.string().trim().min(1).optional(),
+})
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: idParam } = await params
+  try {
+    await requireAdmin()
+    const body = await req.json()
+    const payload = SectionPatchSchema.parse(body)
+    const id = Number(idParam)
+    if (!Number.isFinite(id)) {
+      return json({ error: 'Invalid section id' }, 400)
+    }
+
+    const sb = sbService()
+    const { error, data } = await sb
+      .from('sections')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .maybeSingle()
+
+    if (error) {
+      throw createHttpError(500, 'Failed to update section', error)
+    }
+    await audit('system', 'sections', 'update', id, { details: payload })
+    return json({ section: data ?? null })
+  } catch (e) {
+    const status = extractStatus(e)
+    if (status === 401 || status === 403) {
+      return json({ error: 'Unauthorized' }, status)
+    }
+    if (e instanceof z.ZodError) {
+      return json({ error: 'Invalid input', issues: e.issues }, 422)
+    }
+    const msg = logErr('/api/sections/[id] PATCH', e, { method: 'PATCH' })
+    await auditError('system', 'sections', msg)
+    return json({ error: msg || 'Failed to update section' }, 500)
+  }
 }
 
 export async function DELETE(

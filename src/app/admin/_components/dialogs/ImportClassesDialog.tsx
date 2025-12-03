@@ -401,73 +401,73 @@ export function ImportClassesDialog({
 
                 <div className="flex-1 overflow-hidden flex flex-col min-h-0 rounded-md border border-border">
                     <div className="flex-1 overflow-auto relative">
-                        <table className="w-full text-sm text-left border-collapse">
+                        <table className="w-full table-fixed text-sm text-left border-collapse">
                             <thead className="bg-muted/50 text-xs font-medium text-muted-foreground sticky top-0 z-10">
                                 <tr>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[9ch] sm:w-36">Day</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-40">Start</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-40">End</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[7ch] sm:w-32">Code</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium min-w-[12ch] sm:min-w-52">Title</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[5ch] sm:w-24">Units</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[7ch] sm:w-36">Room</th>
+                                    <th className="px-2 sm:px-4 py-3 font-medium w-[9ch] min-w-[9ch] max-w-[9ch]">Day</th>
+                                    <th className="px-2 sm:px-4 py-3 font-medium w-[11ch]">Start</th>
+                                    <th className="px-2 sm:px-4 py-3 font-medium w-[11ch]">End</th>
+                                    <th className="px-2 sm:px-4 py-3 font-medium w-[7ch] min-w-[7ch] max-w-[7ch]">Code</th>
+                                    <th className="px-2 sm:px-4 py-3 font-medium min-w-[14ch]">Title</th>
+                                    <th className="px-2 sm:px-4 py-3 font-medium w-[5ch] min-w-[5ch] max-w-[5ch]">Units</th>
+                                    <th className="px-2 sm:px-4 py-3 font-medium w-[7ch] min-w-[7ch] max-w-[7ch]">Room</th>
                                     <th className="px-2 sm:px-4 py-3 font-medium w-64">Instructor</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {previewData.rows.map((row, i) => (
                                     <tr key={i} className="group hover:bg-muted/50 transition-colors duration-200">
-                                        <td className="px-2 sm:px-4 py-2 align-middle">
+                                        <td className="px-2 sm:px-4 py-2 align-middle w-[9ch] min-w-[9ch] max-w-[9ch]">
                                             <input
                                                 value={row.day || ''}
                                                 onChange={e => updateRow(i, 'day', e.target.value)}
-                                                className="w-full max-w-[9ch] !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-sm transition-colors"
+                                                className="w-full max-w-[9ch] truncate !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle">
+                                        <td className="px-2 sm:px-4 py-2 align-middle w-[11ch]">
                                             <TimeInput
                                                 value={row.start || ''}
                                                 onChange={val => updateRow(i, 'start', val)}
                                                 className="w-full !h-8 !min-h-0 bg-transparent !px-2 !rounded-md border border-border focus:border-ring focus:ring-0 text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle">
+                                        <td className="px-2 sm:px-4 py-2 align-middle w-[11ch]">
                                             <TimeInput
                                                 value={row.end || ''}
                                                 onChange={val => updateRow(i, 'end', val)}
                                                 className="w-full !h-8 !min-h-0 bg-transparent !px-2 !rounded-md border border-border focus:border-ring focus:ring-0 text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle">
+                                        <td className="px-2 sm:px-4 py-2 align-middle w-[7ch] min-w-[7ch] max-w-[7ch]">
                                             <input
                                                 value={row.code || ''}
                                                 onChange={e => updateRow(i, 'code', e.target.value)}
-                                                className="w-full max-w-[7ch] !h-8 !min-h-0 bg-transparent px-2 font-medium !rounded-md border border-border focus:border-ring focus:outline-none text-sm transition-colors"
+                                                className="w-full max-w-[7ch] truncate !h-8 !min-h-0 bg-transparent px-2 font-medium !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
                                             />
                                         </td>
                                         <td className="px-2 sm:px-4 py-2 align-middle">
                                             <input
                                                 value={row.title || ''}
                                                 onChange={e => updateRow(i, 'title', e.target.value)}
-                                                className="w-full !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-sm transition-colors"
+                                                className="w-full !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
                                                 title={row.title || ''}
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle">
+                                        <td className="px-2 sm:px-4 py-2 align-middle w-[5ch] min-w-[5ch] max-w-[5ch]">
                                             <input
                                                 type="number"
                                                 min="0"
                                                 step="0.5"
                                                 value={row.units || ''}
                                                 onChange={e => updateRow(i, 'units', e.target.value)}
-                                                className="w-full max-w-[5ch] !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-sm transition-colors"
+                                                className="w-full max-w-[5ch] truncate !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle">
+                                        <td className="px-2 sm:px-4 py-2 align-middle w-[7ch] min-w-[7ch] max-w-[7ch]">
                                             <input
                                                 value={row.room || ''}
                                                 onChange={e => updateRow(i, 'room', e.target.value)}
-                                                className="w-full max-w-[7ch] !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-sm transition-colors"
+                                                className="w-full max-w-[7ch] truncate !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
                                             />
                                         </td>
                                         <td className="px-2 sm:px-4 py-2 align-middle">

@@ -12,7 +12,7 @@ import { normalizeApiError, normalizeErrorResponse } from './api-error-client'
 export async function api<T = unknown>(input: RequestInfo | URL, init: RequestInit = {}): Promise<T> {
   const normalizedInput =
     typeof input === 'string'
-      ? input.trim().replace(/\s*\/\s*/g, '/')
+      ? normalizeInput(input)
       : input
 
   const hasBody = init.body !== undefined
@@ -57,4 +57,18 @@ export function useApiWithToast() {
       throw e
     }
   }
+}
+
+function normalizeInput(raw: string) {
+  const trimmed = raw.trim()
+  const [path, ...searchParts] = trimmed.split('?')
+  const search = searchParts.length > 0 ? searchParts.join('?').trim() : ''
+  const sanitizedPath = path
+    // Drop encoded whitespace that ended up in the path segments.
+    .replace(/%20/gi, ' ')
+    // Collapse any stray spaces around slashes.
+    .replace(/\s*\/\s*/g, '/')
+    .trim()
+
+  return search ? `${sanitizedPath}?${search}` : sanitizedPath
 }

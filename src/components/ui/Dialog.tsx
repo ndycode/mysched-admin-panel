@@ -23,26 +23,41 @@ const dialogMotion = {
 const DialogContext = React.createContext<{
   open: boolean
   onOpenChange: (open: boolean) => void
+  headerId?: string
+  bodyId?: string
 }>({
   open: false,
-  onOpenChange: () => { },
+  onOpenChange: () => {},
 })
 
 interface DialogProps {
   open: boolean
-  onOpenChange: (open: boolean) => void
+  onOpenChange?: (open: boolean) => void
+  onClose?: (open: boolean) => void
   children: React.ReactNode
   className?: string
   initialFocus?: React.RefObject<HTMLElement>
+  hideDefaultClose?: boolean
 }
 
 // ...
 
 export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
-  ({ open, onOpenChange, children, className, initialFocus }, ref) => {
+  ({ open, onOpenChange, onClose, children, className, initialFocus, hideDefaultClose }, ref) => {
     const [mounted, setMounted] = React.useState(false)
     const prefersReducedMotion = useReducedMotion()
     const panelRef = React.useRef<HTMLDivElement | null>(null)
+    const lastFocusedRef = React.useRef<HTMLElement | null>(null)
+    const headerId = React.useId()
+    const bodyId = React.useId()
+
+    const handleOpenChange = React.useCallback(
+      (next: boolean) => {
+        if (onOpenChange) onOpenChange(next)
+        else if (onClose) onClose(next)
+      },
+      [onOpenChange, onClose],
+    )
 
     const assignRef = React.useCallback(
       (node: HTMLDivElement | null) => {
@@ -61,13 +76,24 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
       return () => setMounted(false)
     }, [])
 
+    React.useEffect(() => {
+      if (open) {
+        lastFocusedRef.current = document.activeElement as HTMLElement | null
+        return
+      }
+      const previous = lastFocusedRef.current
+      if (previous && typeof previous.focus === 'function') {
+        const timer = window.requestAnimationFrame(() => previous.focus())
+        return () => window.cancelAnimationFrame(timer)
+      }
+    }, [open])
+
 
 
     // ... (inside component)
 
     const lenis = useLenis()
 
-    // Lock body scroll when open
     // Lock body scroll when open
     React.useEffect(() => {
       if (open) {
@@ -120,7 +146,7 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
           event.preventDefault()
-          onOpenChange(false)
+          handleOpenChange(false)
           return
         }
 
@@ -130,13 +156,14 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
           const first = focusables[0]
           const last = focusables[focusables.length - 1]
           const active = document.activeElement as HTMLElement | null
+          const isOutside = !active || !focusables.includes(active) || !panelRef.current?.contains(active)
           if (event.shiftKey) {
-            if (active === first || !panelRef.current?.contains(active)) {
+            if (isOutside || active === first) {
               event.preventDefault()
               last.focus()
             }
           } else {
-            if (active === last || !panelRef.current?.contains(active)) {
+            if (isOutside || active === last) {
               event.preventDefault()
               first.focus()
             }
@@ -147,19 +174,16 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
       // Focus the provided initial ref or first focusable
       const focusInitial = () => {
         if (hasFocused.current) return
-        const target = initialFocus?.current
-        if (target) {
-          target.focus()
-          hasFocused.current = true
-          return
-        }
         const focusables = getFocusable()
-        if (focusables.length > 0) {
-          focusables[0].focus()
-          hasFocused.current = true
-        } else {
-          panelRef.current?.focus()
-        }
+        const primaryFocusables = focusables.filter(el => !el.hasAttribute('data-dialog-close'))
+        const target =
+          initialFocus?.current ??
+          primaryFocusables[0] ??
+          focusables[0] ??
+          panelRef.current
+        if (!target) return
+        target.focus()
+        hasFocused.current = true
       }
 
       const timer = window.requestAnimationFrame(focusInitial)
@@ -169,19 +193,22 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
         window.cancelAnimationFrame(timer)
         document.removeEventListener('keydown', handleKeyDown, true)
       }
-    }, [open, onOpenChange, initialFocus])
+    }, [open, handleOpenChange, initialFocus])
 
-    if (!mounted) return null
+  if (!mounted) return null
 
-    return createPortal(
-      <DialogContext.Provider value={{ open, onOpenChange }}>
+  return createPortal(
+    <DialogContext.Provider
+      value={{
+        open,
+        onOpenChange: handleOpenChange,
+        headerId,
+        bodyId,
+      }}
+    >
         <AnimatePresence mode="wait" initial={false}>
           {open && (
-            <div
-              className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
-              role="dialog"
-              aria-modal="true"
-            >
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
               <motion.div
                 key="dialog-overlay"
                 initial="hidden"
@@ -192,7 +219,7 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
                 className="fixed inset-0 bg-black/45"
                 aria-hidden="true"
                 style={{ willChange: 'opacity' }}
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
               />
               <motion.div
                 key="dialog-panel"
@@ -209,8 +236,25 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
                 style={{ willChange: 'transform, opacity' }}
                 onClick={(e) => e.stopPropagation()}
                 tabIndex={-1}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={headerId}
+                aria-describedby={bodyId}
               >
                 {children}
+                {!hideDefaultClose ? (
+                  <motion.button
+                    onClick={() => handleOpenChange(false)}
+                    className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
+                    aria-label="Close dialog"
+                    data-dialog-close
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: 'spring', stiffness: 360, damping: 22 }}
+                  >
+                    <X className="h-5 w-5" />
+                  </motion.button>
+                ) : null}
               </motion.div>
             </div>
           )}
@@ -222,28 +266,53 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
 )
 Dialog.displayName = 'Dialog'
 
-export function DialogHeader({ children, className }: { children: React.ReactNode; className?: string }) {
-  const { onOpenChange } = React.useContext(DialogContext)
+export function DialogHeader({
+  children,
+  className,
+  showClose = false,
+}: {
+  children: React.ReactNode
+  className?: string
+  showClose?: boolean
+}) {
+  const { onOpenChange, headerId } = React.useContext(DialogContext)
+  const fallbackId = React.useId()
+
   return (
-    <div className={cn('flex items-center justify-between border-b border-border px-6 py-4', className)}>
+    <div className={cn('flex items-center justify-between border-b border-border px-6 py-4', className)} id={headerId ?? fallbackId}>
       <div className="flex-1">{children}</div>
-      <motion.button
-        onClick={() => onOpenChange(false)}
-        className="ml-4 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.97 }}
-        transition={{ type: 'spring', stiffness: 360, damping: 22 }}
-      >
-        <X className="h-5 w-5" />
-      </motion.button>
+      {showClose ? (
+        <motion.button
+          onClick={() => onOpenChange(false)}
+          className="ml-4 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none"
+          aria-label="Close dialog"
+          data-dialog-close
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: 'spring', stiffness: 360, damping: 22 }}
+        >
+          <X className="h-5 w-5" />
+        </motion.button>
+      ) : null}
     </div>
   )
 }
 
-export function DialogBody({ children, className, scrollable = true }: { children: React.ReactNode; className?: string; scrollable?: boolean }) {
+export function DialogBody({
+  children,
+  className,
+  scrollable = true,
+}: {
+  children: React.ReactNode
+  className?: string
+  scrollable?: boolean
+}) {
+  const { bodyId } = React.useContext(DialogContext)
+  const fallbackId = React.useId()
+
   if (!scrollable) {
     return (
-      <div className={cn('p-6 flex-1', className)}>
+      <div className={cn('p-6 flex-1', className)} id={bodyId ?? fallbackId}>
         {children}
       </div>
     )
@@ -254,6 +323,7 @@ export function DialogBody({ children, className, scrollable = true }: { childre
       root={false}
       className={cn('p-6 overflow-y-auto flex-1', className)}
       options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }}
+      id={bodyId ?? fallbackId}
     >
       {children as any}
     </ReactLenis>

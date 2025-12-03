@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useActionState } from 'react'
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/Dialog'
-import { useFormState, useFormStatus } from 'react-dom'
+import { useFormStatus } from 'react-dom'
 
 import { Button, Input } from '@/components/ui'
 import { updateProfile, type UpdateProfileState } from '@/app/admin/actions'
@@ -31,8 +31,8 @@ type ProfileSettingsDialogProps = {
 const initialState: UpdateProfileState = {}
 
 function SubmitButton() {
-    const { pending } = useFormStatus()
-    return (
+  const { pending } = useFormStatus()
+  return (
         <Button type="submit" variant="primary" disabled={pending} className="min-w-[140px] justify-center">
             {pending ? 'Saving...' : 'Save changes'}
         </Button>
@@ -40,7 +40,7 @@ function SubmitButton() {
 }
 
 export function ProfileSettingsDialog({ open, initialData, onClose }: ProfileSettingsDialogProps) {
-    const [state, formAction] = useFormState(updateProfile, initialState)
+    const [state, formAction] = useActionState(updateProfile, initialState)
     const toast = useToast()
 
     const [mounted, setMounted] = useState(false)

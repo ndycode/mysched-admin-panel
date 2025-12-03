@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ReactLenis } from 'lenis/react'
 import { ChevronDown, Loader2, Plus, X } from 'lucide-react'
@@ -56,6 +56,7 @@ export function AddClassDialog({ open, onOpenChange, onCreated }: AddClassDialog
     const [room, setRoom] = useState('')
     const [instructorId, setInstructorId] = useState('')
     const [submitting, setSubmitting] = useState(false)
+    const [validationError, setValidationError] = useState<string | null>(null)
 
     // Fetch sections
     const { data: sections = [] } = useQuery({
@@ -95,6 +96,7 @@ export function AddClassDialog({ open, onOpenChange, onCreated }: AddClassDialog
             setRoom('')
             setInstructorId('')
             setSubmitting(false)
+            setValidationError(null)
         }
     }, [open])
 
@@ -106,19 +108,23 @@ export function AddClassDialog({ open, onOpenChange, onCreated }: AddClassDialog
         const normalizedEnd = normalizeTimeValue(end)
 
         if (!trimmedTitle) {
+            setValidationError('Title is required')
             toast({ kind: 'error', msg: 'Class title is required' })
             return
         }
         if (!trimmedCode) {
+            setValidationError('Code is required')
             toast({ kind: 'error', msg: 'Class code is required' })
             return
         }
         if (!hasSections || !sectionId) {
+            setValidationError('Section is required')
             toast({ kind: 'error', msg: 'Select a section to link this class' })
             return
         }
 
         setSubmitting(true)
+        setValidationError(null)
         try {
             const payload = {
                 section_id: Number(sectionId),
@@ -144,6 +150,7 @@ export function AddClassDialog({ open, onOpenChange, onCreated }: AddClassDialog
         } catch (error) {
             const { message } = normalizeApiError(error, 'Failed to create class')
             toast({ kind: 'error', msg: message })
+            setValidationError(message)
             setSubmitting(false)
         }
     }
@@ -155,13 +162,18 @@ export function AddClassDialog({ open, onOpenChange, onCreated }: AddClassDialog
             className="max-w-2xl"
         >
             <DialogHeader>
-                <h2 className="text-xl font-semibold text-foreground">Add class</h2>
+                <h2 className="text-xl font-semibold text-foreground">Add New Class</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                     Create a new class and assign it to an existing section.
                 </p>
             </DialogHeader>
             <DialogBody>
-                <form onSubmit={handleSubmit} className="grid gap-5">
+                <form onSubmit={handleSubmit} className="grid gap-5" noValidate>
+                    {validationError ? (
+                        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                            {validationError}
+                        </p>
+                    ) : null}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <label className="text-sm font-medium text-foreground">
                             Title
@@ -342,14 +354,14 @@ export function AddClassDialog({ open, onOpenChange, onCreated }: AddClassDialog
                         />
                         <AnimatedActionBtn
                             icon={Plus}
-                            label="Create class"
+                            label="Add Class"
                             onClick={() => {
                                 // Trigger form submission programmatically
                                 const form = document.querySelector('form')
                                 if (form) form.requestSubmit()
                             }}
                             isLoading={submitting}
-                            loadingLabel="Creating..."
+                            loadingLabel="Adding..."
                             variant="primary"
                             className="rounded-full"
                         />

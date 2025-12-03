@@ -627,6 +627,7 @@ function LoginInner() {
                     variants={labelVariants}
                     initial="idle"
                     animate={emailFocused || email ? 'floating' : 'idle'}
+                    htmlFor="email"
                     className="absolute left-6 z-10 text-muted-foreground pointer-events-none origin-left top-0"
                   >
                     Email
@@ -660,6 +661,7 @@ function LoginInner() {
                     variants={labelVariants}
                     initial="idle"
                     animate={passwordFocused || password ? 'floating' : 'idle'}
+                    htmlFor="password"
                     className="absolute left-6 z-10 text-muted-foreground pointer-events-none origin-left top-0"
                   >
                     Password

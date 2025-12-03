@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
 
 import * as route from '../sections/route'
 
@@ -18,6 +18,12 @@ vi.mock('@/lib/supabase-service', () => ({ sbService: mocks.sbService }))
 vi.mock('@/lib/rate', () => ({ throttle: vi.fn(async () => undefined) }))
 vi.mock('@/lib/csrf', () => ({ assertSameOrigin: vi.fn() }))
 vi.mock('@/lib/request', () => ({ getClientIp: vi.fn(() => '127.0.0.1') }))
+
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore()
+})
 
 let sectionResult: SupabaseResult<any[]>
 let classResult: SupabaseResult<any[]>

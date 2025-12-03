@@ -16,7 +16,7 @@ type Props = {
 export default function SignOutButton({
   className = '',
   children = 'Logout',
-  ariaLabel = 'Sign out',
+  ariaLabel,
 }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)

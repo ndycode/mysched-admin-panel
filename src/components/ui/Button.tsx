@@ -1,13 +1,17 @@
 'use client'
 
-'use client'
-
-import React from 'react'
+import React, { forwardRef } from 'react'
 import { motion, type HTMLMotionProps } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 export type ButtonSize = 'sm' | 'md' | 'lg'
+export type ButtonProps = Omit<HTMLMotionProps<'button'>, 'type'> & {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  loading?: boolean
+  type?: 'button' | 'submit' | 'reset'
+}
 
 const baseButton =
   'inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60'
@@ -48,6 +52,42 @@ export function buttonClasses({
     className,
   )
 }
+
+type ButtonProps = HTMLMotionProps<'button'> & {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  loading?: boolean
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'primary', size = 'md', disabled, loading = false, onClick, type = 'button', ...props }, ref) => {
+    const computedDisabled = disabled || loading
+    const handleClick: typeof onClick = event => {
+      if (computedDisabled) {
+        event.preventDefault()
+        return
+      }
+      onClick?.(event)
+    }
+
+    return (
+      <motion.button
+        ref={ref}
+        className={buttonClasses({ variant, size, className, disabled })}
+        whileHover={!computedDisabled ? { scale: 1.05 } : undefined}
+        whileTap={!computedDisabled ? { scale: 0.97 } : undefined}
+        transition={{ type: 'spring', stiffness: 360, damping: 22 }}
+        disabled={computedDisabled}
+        aria-busy={loading || undefined}
+        data-loading={loading ? 'true' : undefined}
+        type={type}
+        onClick={handleClick}
+        {...props}
+      />
+    )
+  },
+)
+Button.displayName = 'Button'
 
 type PrimaryButtonProps = HTMLMotionProps<'button'> & {
   loading?: boolean

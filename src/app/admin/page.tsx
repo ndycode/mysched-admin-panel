@@ -758,7 +758,7 @@ export default function AdminDashboard() {
                   {/* Chart */}
                   <div className="h-52 w-52 relative shrink-0">
                     <SmoothDonutChart
-                      data={analytics}
+                      data={donutData}
                       height={200}
                       animateKey={`${statsPulse}-${activeDistTab}`}
                       activeIndex={activeDistIndex}

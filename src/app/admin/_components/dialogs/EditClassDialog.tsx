@@ -40,11 +40,9 @@ type InstructorSummary = {
 
 type EditClassDialogProps = {
     open: boolean
-    row: Row | null
-    onClose: () => void
-    sections: Section[]
-    instructors: InstructorSummary[]
-    onSaved: () => void
+    classData: Row | null
+    onOpenChange: (open: boolean) => void
+    onUpdated: () => void
 }
 
 function normalizeTimeValue(value: string | null | undefined): string {
@@ -64,13 +62,13 @@ function normalizeTimeValue(value: string | null | undefined): string {
 
 export function EditClassDialog({
     open,
-    row,
-    onClose,
-    sections,
-    instructors,
-    onSaved,
+    classData,
+    onOpenChange,
+    onUpdated,
 }: EditClassDialogProps) {
     const toast = useToast()
+    const [sections, setSections] = useState<Section[]>([])
+    const [instructors, setInstructors] = useState<InstructorSummary[]>([])
     const [title, setTitle] = useState('')
     const [code, setCode] = useState('')
     const [sectionId, setSectionId] = useState('')
@@ -81,28 +79,40 @@ export function EditClassDialog({
     const [room, setRoom] = useState('')
     const [instructorId, setInstructorId] = useState('')
     const [submitting, setSubmitting] = useState(false)
+    const [validationError, setValidationError] = useState<string | null>(null)
 
-    const hasSections = sections.length > 0
+    const hasSections = (sections ?? []).length > 0 || Boolean(classData?.section_id)
 
     useEffect(() => {
-        if (open && row) {
-            setTitle(row.title ?? '')
-            setCode(row.code ?? '')
-            setSectionId(row.section_id ? String(row.section_id) : '')
-            setDay(row.day ?? '')
-            setStart(row.start ?? '')
-            setEnd(row.end ?? '')
-            setUnits(row.units ? String(row.units) : '')
-            setRoom(row.room ?? '')
-            setInstructorId(row.instructor_id ?? '')
+        if (!open) return
+        api('/api/sections')
+            .then((rows: Section[]) => setSections(rows ?? []))
+            .catch(() => setSections([]))
+        api('/api/instructors')
+            .then((resp: { rows: InstructorSummary[] }) => setInstructors(resp?.rows ?? []))
+            .catch(() => setInstructors([]))
+    }, [open])
+
+    useEffect(() => {
+        if (open && classData) {
+            setTitle(classData.title ?? '')
+            setCode(classData.code ?? '')
+            setSectionId(classData.section_id ? String(classData.section_id) : '')
+            setDay(classData.day ?? '')
+            setStart(classData.start ?? '')
+            setEnd(classData.end ?? '')
+            setUnits(classData.units ? String(classData.units) : '')
+            setRoom(classData.room ?? '')
+            setInstructorId(classData.instructor_id ?? '')
         } else if (!open) {
             setSubmitting(false)
+            setValidationError(null)
         }
-    }, [open, row])
+    }, [open, classData])
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault()
-        if (!row) return
+        if (!classData) return
 
         const trimmedTitle = title.trim()
         const trimmedCode = code.trim()
@@ -110,19 +120,22 @@ export function EditClassDialog({
         const normalizedEnd = normalizeTimeValue(end)
 
         if (!trimmedTitle) {
+            setValidationError('Title is required')
             toast({ kind: 'error', msg: 'Class title is required' })
             return
         }
         if (!trimmedCode) {
+            setValidationError('Code is required')
             toast({ kind: 'error', msg: 'Class code is required' })
             return
         }
-        if (!hasSections || !sectionId) {
+        if (!sectionId) {
+            setValidationError('Section is required')
             toast({ kind: 'error', msg: 'Select a section to link this class' })
             return
         }
-
         setSubmitting(true)
+        setValidationError(null)
         try {
             const payload = {
                 section_id: Number(sectionId),
@@ -139,15 +152,17 @@ export function EditClassDialog({
                     : null,
             }
 
-            await api(`/api/classes/${row.id}`, {
+            await api(`/api/classes/${classData.id}`, {
                 method: 'PATCH',
                 body: JSON.stringify(payload),
             })
 
-            onSaved()
+            onUpdated()
+            onOpenChange(false)
         } catch (error) {
             const { message } = normalizeApiError(error, 'Failed to update class')
             toast({ kind: 'error', msg: message })
+            setValidationError(message)
             setSubmitting(false)
         }
     }
@@ -155,7 +170,7 @@ export function EditClassDialog({
     return (
         <Dialog
             open={open}
-            onOpenChange={(val) => !val && !submitting && onClose()}
+            onOpenChange={(val) => !val && !submitting && onOpenChange(false)}
             className="max-w-2xl"
         >
             <DialogHeader>
@@ -165,7 +180,12 @@ export function EditClassDialog({
                 </p>
             </DialogHeader>
             <DialogBody>
-                <form onSubmit={handleSubmit} className="grid gap-5">
+                <form onSubmit={handleSubmit} className="grid gap-5" noValidate>
+                    {validationError ? (
+                        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                            {validationError}
+                        </p>
+                    ) : null}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <label className="text-sm font-medium text-foreground">
                             Title
@@ -335,7 +355,7 @@ export function EditClassDialog({
                         <AnimatedActionBtn
                             icon={X}
                             label="Cancel"
-                            onClick={onClose}
+                            onClick={() => onOpenChange(false)}
                             disabled={submitting}
                             variant="secondary"
                         />
@@ -350,6 +370,7 @@ export function EditClassDialog({
                             loadingLabel="Saving..."
                             variant="primary"
                             className="rounded-full"
+                            disabled={submitting}
                         />
                     </div>
                 </form>

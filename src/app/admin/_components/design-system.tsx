@@ -20,7 +20,7 @@ export const ActionMenuTrigger = forwardRef<HTMLButtonElement, ActionMenuTrigger
     const sizeClass = size === 'sm' ? 'h-8 w-8' : 'h-9 w-9'
     const base =
       variant === 'accent'
-        ? buttonClasses({ variant: 'primary', size: 'sm', className: `${sizeClass} px-0` })
+        ? buttonClasses({ variant: 'primary', size: 'sm', className: `${sizeClass} px-0 bg-accent` })
         : buttonClasses({ variant: 'secondary', size: 'sm', className: `${sizeClass} px-0` })
 
     return (

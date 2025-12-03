@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer'
-import { describe, expect, it, afterEach, vi } from 'vitest'
+import { describe, expect, it, afterEach, beforeAll, afterAll, vi } from 'vitest'
 
 import { LOCAL_SUPABASE_DEFAULTS } from './supabase-defaults'
 
@@ -12,6 +12,16 @@ const globalRef = globalThis as typeof globalThis & {
   }
 }
 const ORIGINAL_WINDOW = globalRef.window
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+beforeAll(() => {
+  // suppress noisy console.error messages during env mutation tests
+  consoleErrorSpy.mockImplementation(() => {})
+})
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore()
+})
 
 async function loadEnvModule() {
   vi.resetModules()

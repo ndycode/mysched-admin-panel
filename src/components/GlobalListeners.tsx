@@ -1,18 +1,6 @@
-'use client';
-
-import { useEffect } from 'react';
+'use client'
 
 export function GlobalListeners() {
-    useEffect(() => {
-        const handleContextMenu = (e: MouseEvent) => {
-            e.preventDefault();
-        };
-
-        document.addEventListener('contextmenu', handleContextMenu);
-        return () => {
-            document.removeEventListener('contextmenu', handleContextMenu);
-        };
-    }, []);
-
-    return null;
+  // Right-click context menus are allowed; no global listeners required.
+  return null
 }

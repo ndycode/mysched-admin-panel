@@ -68,7 +68,7 @@ export function ManagePermissionsDialog({ user, open, onClose, onUpdated }: Mana
 
     setSubmitting(true)
     try {
-      await api(`/ api / users / ${user.id} `, {
+      await api(`/api/users/${user.id}`, {
         method: 'PATCH',
         body: JSON.stringify(payload),
       })

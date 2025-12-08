@@ -2,10 +2,12 @@ export type SectionApiRow = {
   id?: number
   code?: string | null
   section_number?: string | null // legacy/nullable; currently using code as the primary value
+  semester_id?: number | null
   created_at?: string | null
   updated_at?: string | null
   class_count?: number | Array<{ count?: number | string | null }> | null
   classes?: Array<{ id?: number | null; archived_at?: string | null }> | null
+  semesters?: { id: number; code: string; name: string; is_active: boolean } | null
 }
 
 export type SectionRow = {
@@ -13,6 +15,9 @@ export type SectionRow = {
   key: string
   code: string | null
   sectionNumber: string
+  semesterId: number | null
+  semesterName: string | null
+  semesterIsActive: boolean
   createdAt: string | null
   updatedAt: string | null
   classCount: number | null

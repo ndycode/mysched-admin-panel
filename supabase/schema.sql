@@ -1,16 +1,6 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
-CREATE TABLE public.admin_settings (
-  id text NOT NULL,
-  general jsonb NOT NULL DEFAULT '{}'::jsonb,
-  notifications jsonb NOT NULL DEFAULT '{}'::jsonb,
-  security jsonb NOT NULL DEFAULT '{}'::jsonb,
-  integrations jsonb NOT NULL DEFAULT '{}'::jsonb,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT admin_settings_pkey PRIMARY KEY (id)
-);
 CREATE TABLE public.admins (
   user_id uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -103,34 +93,31 @@ CREATE TABLE public.reminders (
 );
 CREATE TABLE public.sections (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  code text NOT NULL UNIQUE,
+  code text NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   section_number text,
-  class_code text,
-  class_name text,
-  instructor text,
-  time_slot text,
-  room text,
-  enrolled integer,
-  capacity integer,
-  status text,
-  CONSTRAINT sections_pkey PRIMARY KEY (id)
+  semester_id bigint,
+  CONSTRAINT sections_pkey PRIMARY KEY (id),
+  CONSTRAINT sections_semester_id_fkey FOREIGN KEY (semester_id) REFERENCES public.semesters(id)
 );
-CREATE TABLE public.user_class_links (
-  id bigint NOT NULL DEFAULT nextval('user_class_links_id_seq'::regclass),
-  user_id uuid NOT NULL,
-  user_class_id bigint NOT NULL,
+CREATE TABLE public.semesters (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  code text NOT NULL UNIQUE,
+  name text NOT NULL,
+  academic_year text,
+  term integer CHECK (term >= 1 AND term <= 3),
+  start_date date,
+  end_date date,
+  is_active boolean NOT NULL DEFAULT false,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT user_class_links_pkey PRIMARY KEY (id),
-  CONSTRAINT user_class_links_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
-  CONSTRAINT user_class_links_user_class_id_fkey FOREIGN KEY (user_class_id) REFERENCES public.user_custom_classes(id)
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT semesters_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.user_class_overrides (
   user_id uuid NOT NULL,
   class_id bigint NOT NULL,
   enabled boolean NOT NULL DEFAULT true,
-  deleted boolean NOT NULL DEFAULT false,
   CONSTRAINT user_class_overrides_pkey PRIMARY KEY (user_id, class_id),
   CONSTRAINT user_class_overrides_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT user_class_overrides_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
@@ -147,6 +134,7 @@ CREATE TABLE public.user_custom_classes (
   instructor text DEFAULT ''::text,
   created_at timestamp with time zone DEFAULT now(),
   enabled boolean DEFAULT true,
+  instructor_avatar text,
   CONSTRAINT user_custom_classes_pkey PRIMARY KEY (id),
   CONSTRAINT user_custom_classes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -157,4 +145,26 @@ CREATE TABLE public.user_sections (
   CONSTRAINT user_sections_pkey PRIMARY KEY (user_id, section_id),
   CONSTRAINT user_sections_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT user_sections_section_id_fkey FOREIGN KEY (section_id) REFERENCES public.sections(id)
+);
+CREATE TABLE public.user_settings (
+  user_id uuid NOT NULL,
+  use_24_hour_format boolean DEFAULT false,
+  haptic_feedback boolean DEFAULT true,
+  class_alarms boolean DEFAULT true,
+  app_notifs boolean DEFAULT true,
+  quiet_week boolean DEFAULT false,
+  verbose_logging boolean DEFAULT false,
+  class_lead_minutes integer DEFAULT 5,
+  snooze_minutes integer DEFAULT 5,
+  reminder_lead_minutes integer DEFAULT 0,
+  dnd_enabled boolean DEFAULT false,
+  dnd_start_time text DEFAULT '22:00'::text,
+  dnd_end_time text DEFAULT '07:00'::text,
+  alarm_volume integer DEFAULT 80,
+  alarm_vibration boolean DEFAULT true,
+  alarm_ringtone text DEFAULT 'default'::text,
+  auto_refresh_minutes integer DEFAULT 30,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_settings_pkey PRIMARY KEY (user_id),
+  CONSTRAINT user_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );

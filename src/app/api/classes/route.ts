@@ -161,6 +161,7 @@ export async function GET(req: NextRequest) {
     await requireAdmin()
     const sb = sbService()
     const sp = new URL(req.url).searchParams
+    const semesterParam = sp.get('semester')
     const section = sp.get('section_id')
     const instructorId = sp.get('instructor_id')
     const day = sp.get('day')
@@ -174,12 +175,50 @@ export async function GET(req: NextRequest) {
     const sortConfig = SORT_CONFIGS[sortKey]
     const direction = parseDirection(sp.get('direction'), sortConfig.defaultDirection)
 
+    // Handle semester filtering - get section IDs for the semester
+    let semesterSectionIds: number[] | null = null
+    if (semesterParam && semesterParam !== 'all') {
+      let semesterId: number | null = null
+
+      if (semesterParam === 'active') {
+        // Get the active semester
+        const { data: activeSem } = await sb
+          .from('semesters')
+          .select('id')
+          .eq('is_active', true)
+          .single()
+        semesterId = activeSem?.id ?? null
+      } else {
+        semesterId = parseInt(semesterParam, 10)
+        if (isNaN(semesterId)) semesterId = null
+      }
+
+      if (semesterId) {
+        const { data: semSections } = await sb
+          .from('sections')
+          .select('id')
+          .eq('semester_id', semesterId)
+        semesterSectionIds = (semSections ?? []).map(s => s.id)
+
+        // If no sections for this semester, return empty
+        if (semesterSectionIds.length === 0) {
+          return json({ rows: [], count: 0, page, limit })
+        }
+      }
+    }
+
     let q = sb
       .from('classes')
       .select(
         '*, instructor_profile:instructor_id(id, full_name, email, title, department, avatar_url)',
         { count: 'exact' },
       )
+
+    // Apply semester filter via section IDs
+    if (semesterSectionIds) {
+      q = q.in('section_id', semesterSectionIds)
+    }
+
     if (section && section !== 'all') q = q.eq('section_id', Number(section))
     if (instructorId && instructorId !== 'all') q = q.eq('instructor_id', instructorId)
     if (day && day !== 'all') {
@@ -281,20 +320,20 @@ export async function POST(
       dayCandidates.length > 0 ? (dayCandidates as Array<string | number>) : [null]
 
     const basePayload: Record<string, unknown> = { ...input }
-  delete basePayload.day
-  // The 'instructor' column does not exist in the schema, so we remove it from the payload.
-  // We only use instructor_id.
-  delete basePayload.instructor
+    delete basePayload.day
+    // The 'instructor' column does not exist in the schema, so we remove it from the payload.
+    // We only use instructor_id.
+    delete basePayload.instructor
 
-  if (Object.prototype.hasOwnProperty.call(basePayload, 'instructor_id')) {
-    basePayload.instructor_id = input.instructor_id ?? null
-  } else {
-    basePayload.instructor_id = null
-  }
-  const sb = sbService()
-  let created: Record<string, unknown> | null = null
-  let resultData: Record<string, unknown> | null = null
-  let lastError: PostgrestError | null = null
+    if (Object.prototype.hasOwnProperty.call(basePayload, 'instructor_id')) {
+      basePayload.instructor_id = input.instructor_id ?? null
+    } else {
+      basePayload.instructor_id = null
+    }
+    const sb = sbService()
+    let created: Record<string, unknown> | null = null
+    let resultData: Record<string, unknown> | null = null
+    let lastError: PostgrestError | null = null
 
     for (const variant of dayVariants) {
       const attemptPayload = { ...basePayload, day: variant }

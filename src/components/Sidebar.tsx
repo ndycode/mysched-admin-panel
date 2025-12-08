@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Calendar,
 } from 'lucide-react'
 import { useSmoothProgress } from '@/hooks/useSmoothProgress'
 
@@ -30,6 +31,7 @@ const NAV = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/classes', label: 'Classes', icon: NotebookPen },
   { href: '/admin/sections', label: 'Sections', icon: Layers3 },
+  { href: '/admin/semesters', label: 'Semesters', icon: Calendar },
   { href: '/admin/audit', label: 'Audit Logs', icon: ShieldCheck },
 ]
 

@@ -650,6 +650,16 @@ export default function SectionsPage() {
           </div>
         </td>
         <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">{row.code ?? '-'}</td>
+        <td className="whitespace-nowrap px-3 py-2.5 text-sm sm:px-4">
+          {row.semesterName ? (
+            <span className="flex items-center gap-1.5">
+              <span className="text-foreground">{row.semesterName}</span>
+              {row.semesterIsActive && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </td>
         <td className="whitespace-nowrap px-3 py-2.5 text-sm text-foreground sm:px-4">
           <Badge className="font-medium">
             {row.classCount} classes
@@ -924,7 +934,7 @@ export default function SectionsPage() {
               error={sectionErrorMessage}
               isEmpty={!tableLoading && paginatedSections.length === 0}
               emptyMessage="No sections found matching your filters."
-              colSpan={6}
+              colSpan={7}
               minWidthClass="min-w-[1200px] table-fixed"
               pagination={
                 <div className="flex w-full flex-wrap items-center gap-3 sm:justify-between">
@@ -971,13 +981,16 @@ export default function SectionsPage() {
                   <th className="w-[140px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     <SortableTableHeader sortKey="code" label="Code" currentSort={sort} sortDirection={sortDirection} userSorted={userSorted} onSortChange={handleSortChange} />
                   </th>
-                  <th className="w-[140px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                  <th className="w-[180px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                    Semester
+                  </th>
+                  <th className="w-[120px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     <SortableTableHeader sortKey="classes" label="Classes" currentSort={sort} sortDirection={sortDirection} userSorted={userSorted} onSortChange={handleSortChange} />
                   </th>
-                  <th className="w-[240px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                  <th className="w-[180px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     <SortableTableHeader sortKey="created" label="Created" currentSort={sort} sortDirection={sortDirection} userSorted={userSorted} onSortChange={handleSortChange} />
                   </th>
-                  <th className="w-[240px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                  <th className="w-[180px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     <SortableTableHeader sortKey="updated" label="Updated" currentSort={sort} sortDirection={sortDirection} userSorted={userSorted} onSortChange={handleSortChange} />
                   </th>
                   <th className="w-[60px] sticky right-0 z-10 rounded-tr-lg border-l border-border bg-background dark:bg-black px-3 py-2 text-right text-xs font-medium text-muted-foreground sm:px-4 sm:py-3" style={{ backgroundColor: 'var(--background)' }}>
@@ -989,6 +1002,7 @@ export default function SectionsPage() {
               {paginatedSections.map(renderRow)}
               {!isLoading && Array.from({ length: Math.max(0, pageSize - paginatedSections.length) }).map((_, index) => (
                 <tr key={`spacer-${index}`} aria-hidden="true" className="h-[52px]">
+                  <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>

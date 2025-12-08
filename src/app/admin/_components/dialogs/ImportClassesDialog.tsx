@@ -20,6 +20,7 @@ import { api } from '@/lib/fetcher'
 import { normalizeApiError } from '@/lib/api-error-client'
 
 type Section = { id: number; code: string | null }
+type Semester = { id: number; code: string; name: string; is_active: boolean }
 type InstructorSummary = {
     id: string
     full_name: string
@@ -66,6 +67,9 @@ export function ImportClassesDialog({
 }: ImportClassesDialogProps) {
     const isMobile = useIsMobile()
     const [sections, setSections] = useState(initialSections)
+    const [semesters, setSemesters] = useState<Semester[]>([])
+    const [semestersLoading, setSemestersLoading] = useState(true)
+    const [selectedSemesterId, setSelectedSemesterId] = useState<number | null>(null)
     const [file, setFile] = useState<File | null>(null)
     const [uploading, setUploading] = useState(false)
     const [previewData, setPreviewData] = useState<ImportPreviewResponse | null>(null)
@@ -106,6 +110,28 @@ export function ImportClassesDialog({
     useEffect(() => {
         setSections(initialSections)
     }, [initialSections])
+
+    // Fetch semesters on mount
+    useEffect(() => {
+        const fetchSemesters = async () => {
+            try {
+                const data = await api<Semester[]>('/api/semesters')
+                setSemesters(data)
+                // Auto-select active semester
+                const active = data.find(s => s.is_active)
+                if (active) {
+                    setSelectedSemesterId(active.id)
+                }
+            } catch (err) {
+                console.error('Failed to fetch semesters:', err)
+            } finally {
+                setSemestersLoading(false)
+            }
+        }
+        if (open) {
+            fetchSemesters()
+        }
+    }, [open])
 
     const selectedSection = useMemo(() =>
         sections.find(s => String(s.id) === selectedSectionId),
@@ -306,12 +332,18 @@ export function ImportClassesDialog({
             return
         }
 
+        if (!selectedSemesterId) {
+            setError("Please select a semester.")
+            return
+        }
+
         setConfirming(true)
         setError(null)
 
         try {
             const payload = {
                 section_id: parseInt(finalSectionId, 10),
+                semester_id: selectedSemesterId,
                 classes: previewData.rows.map(row => {
                     let instructorId = row.matched_instructor?.id ?? null
 
@@ -359,6 +391,7 @@ export function ImportClassesDialog({
         setFile(null)
         setPreviewData(null)
         setSelectedSectionId('none')
+        setSelectedSemesterId(null)
         setPendingSectionCode(null)
         setError(null)
         onClose()
@@ -405,7 +438,7 @@ export function ImportClassesDialog({
 
         return (
             <div className="flex flex-col h-full gap-4">
-                <div className="grid grid-cols-2 gap-4 flex-none">
+                <div className="grid grid-cols-3 gap-4 flex-none">
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-foreground">Detected section</label>
                         <div className="flex h-11 w-full items-center rounded-md border border-input bg-muted/50 px-3 py-1 text-sm shadow-sm">
@@ -449,6 +482,39 @@ export function ImportClassesDialog({
                                             onClick={() => handleSectionChange(String(section.id))}
                                         >
                                             {section.code || `Section ${section.id}`}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </ReactLenis>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">Import to semester</label>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <AnimatedActionBtn
+                                    label={
+                                        selectedSemesterId
+                                            ? semesters.find(s => s.id === selectedSemesterId)?.name || 'Select semester...'
+                                            : 'Select semester...'
+                                    }
+                                    icon={ChevronDown}
+                                    variant="secondary"
+                                    className="w-full justify-between h-11 px-3"
+                                    disabled={semestersLoading}
+                                />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-52 p-0" align="start">
+                                <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-72 overflow-y-auto p-1">
+                                    {semesters.map((semester) => (
+                                        <DropdownMenuItem
+                                            key={semester.id}
+                                            onClick={() => setSelectedSemesterId(semester.id)}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                {semester.name}
+                                                {semester.is_active && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
+                                            </span>
                                         </DropdownMenuItem>
                                     ))}
                                 </ReactLenis>

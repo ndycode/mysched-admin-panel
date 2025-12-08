@@ -34,6 +34,7 @@ const ConfirmClassSchema = z
 const ConfirmPayloadSchema = z
   .object({
     section_id: z.coerce.number().int().positive('Section id must be greater than 0'),
+    semester_id: z.coerce.number().int().positive('Semester id must be greater than 0').optional().nullable(),
     classes: z.array(ConfirmClassSchema).min(1, 'At least one class is required'),
   })
   .strict()
@@ -109,14 +110,26 @@ export async function POST(req: NextRequest) {
       return json({ error: 'Section not found.' }, 404)
     }
 
+    // Update section's semester_id if provided
+    if (parsed.semester_id) {
+      const { error: updateError } = await sb
+        .from('sections')
+        .update({ semester_id: parsed.semester_id })
+        .eq('id', parsed.section_id)
+
+      if (updateError) {
+        throw createHttpError(500, 'Failed to update section semester', updateError)
+      }
+    }
+
     const issues: ValidationIssue[] = []
     const rows: InsertRow[] = []
 
-  parsed.classes.forEach((row, index) => {
-    const dayInfo = toDowValue(row.day ?? null)
-    if (!dayInfo.code) {
-      issues.push({
-        code: z.ZodIssueCode.custom,
+    parsed.classes.forEach((row, index) => {
+      const dayInfo = toDowValue(row.day ?? null)
+      if (!dayInfo.code) {
+        issues.push({
+          code: z.ZodIssueCode.custom,
           message: 'Unrecognized day value. Please specify a valid day of week.',
           path: ['classes', index, 'day'],
         })
@@ -220,33 +233,33 @@ export async function POST(req: NextRequest) {
     if (status === 404) {
       return json({ error: 'Section not found.' }, 404)
     }
-  if (status === 422) {
-    const message = (error as Error).message || 'Invalid request payload.'
-    return json({ error: message }, 422)
-  }
-  if (status === 429) {
-    return json({ error: 'Too many requests. Please wait and try again.' }, 429)
-  }
+    if (status === 422) {
+      const message = (error as Error).message || 'Invalid request payload.'
+      return json({ error: message }, 422)
+    }
+    if (status === 429) {
+      return json({ error: 'Too many requests. Please wait and try again.' }, 429)
+    }
 
-  const pg = error as PostgrestError
-  const extras =
-    pg && typeof pg === 'object'
-      ? {
+    const pg = error as PostgrestError
+    const extras =
+      pg && typeof pg === 'object'
+        ? {
           code: (pg as { code?: string | null }).code,
           details: (pg as { details?: string | null }).details,
           hint: (pg as { hint?: string | null }).hint,
           message: (pg as { message?: string | null }).message,
         }
-      : {}
+        : {}
 
-  const msg = logErr('/api/classes/import-confirm POST', error, { method: req.method, ...extras })
-  await auditError('system', 'classes', msg, { route: 'import-confirm', ...extras })
-  return json(
-    {
-      error: msg || 'Internal Server Error',
-      ...extras,
-    },
-    500,
-  )
-}
+    const msg = logErr('/api/classes/import-confirm POST', error, { method: req.method, ...extras })
+    await auditError('system', 'classes', msg, { route: 'import-confirm', ...extras })
+    return json(
+      {
+        error: msg || 'Internal Server Error',
+        ...extras,
+      },
+      500,
+    )
+  }
 }

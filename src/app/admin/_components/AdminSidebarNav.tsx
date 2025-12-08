@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   BookOpen,
+  Calendar,
   FileText,
   Home,
   Layers,
@@ -35,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: Home },
   { href: '/admin/classes', label: 'Classes', icon: BookOpen },
   { href: '/admin/sections', label: 'Sections', icon: Layers },
+  { href: '/admin/semesters', label: 'Semesters', icon: Calendar },
   { href: '/admin/instructors', label: 'Instructors', icon: UserRound },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/audit', label: 'Logs', icon: FileText },

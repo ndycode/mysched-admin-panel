@@ -105,9 +105,22 @@ type Row = {
   instructor: string | null
   instructor_id: string | null
   instructor_profile: InstructorSummary | null
+  sections: {
+    id: number
+    code: string | null
+    semester_id: number | null
+    semesters: { id: number; code: string; name: string; is_active: boolean } | null
+  } | null
 }
 
-type Section = { id: number; code: string | null }
+type Section = {
+  id: number
+  code: string | null
+  semester_id: number | null
+  semesters: { id: number; code: string; name: string; is_active: boolean } | null
+}
+
+type Semester = { id: number; code: string; name: string; is_active: boolean }
 
 type ClassDetail = Row & {
   created_at: string | null
@@ -164,6 +177,7 @@ function formatSchedule(row: Row) {
 type ClassesQueryData = { rows: Row[]; count: number }
 
 export default function ClassesPage() {
+  const [semesterFilter, setSemesterFilter] = useState<'all' | string>('all')
   const [sectionId, setSectionId] = useState('all')
   const [dayFilter, setDayFilter] = useState<'all' | DayValue>('all')
   const [instructorFilter, setInstructorFilter] = useState('all')
@@ -207,6 +221,14 @@ export default function ClassesPage() {
     staleTime: 5 * 60 * 1000,
   })
 
+  const semestersQuery = useQuery({
+    queryKey: ['semesters', 'options'],
+    queryFn: async () => {
+      return await api<Semester[]>('/api/semesters')
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
   const instructorsQuery = useQuery({
     queryKey: ['instructors', 'options'],
     queryFn: async () => {
@@ -225,15 +247,16 @@ export default function ClassesPage() {
     () =>
       [
         'classes',
-        { sectionId, dayFilter, instructorFilter, debouncedSearch, page, pageSize, sort, sortDirection },
+        { semesterFilter, sectionId, dayFilter, instructorFilter, debouncedSearch, page, pageSize, sort, sortDirection },
       ] as const,
-    [sectionId, dayFilter, instructorFilter, debouncedSearch, page, pageSize, sort, sortDirection],
+    [semesterFilter, sectionId, dayFilter, instructorFilter, debouncedSearch, page, pageSize, sort, sortDirection],
   )
 
   const classesQuery = useQuery({
     queryKey: classesQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams()
+      if (semesterFilter !== 'all') params.set('semester', semesterFilter)
       if (sectionId !== 'all') params.set('section_id', sectionId)
       if (dayFilter !== 'all') params.set('day', dayFilter)
       if (instructorFilter !== 'all') params.set('instructor_id', instructorFilter)
@@ -261,10 +284,27 @@ export default function ClassesPage() {
   const reloadSpinning = classesQuery.isFetching || classesQuery.isLoading || !classesQuery.data
 
   const sections = useMemo(() => sectionsQuery.data ?? [], [sectionsQuery.data])
+  const semesters = useMemo(() => semestersQuery.data ?? [], [semestersQuery.data])
+  const activeSemester = useMemo(() => semesters.find(s => s.is_active), [semesters])
   const instructors = useMemo(() => instructorsQuery.data ?? [], [instructorsQuery.data])
-  const rows = useMemo(() => classesQuery.data?.rows ?? [], [classesQuery.data])
+
+  // Merge semester data into classes rows from sections
+  const rows = useMemo(() => {
+    const rawRows = classesQuery.data?.rows ?? []
+    const sectionMap = new Map(sections.map(s => [s.id, s]))
+
+    return rawRows.map(row => {
+      const section = row.section_id ? sectionMap.get(row.section_id) : null
+      return {
+        ...row,
+        sections: section || null
+      }
+    })
+  }, [classesQuery.data, sections])
+
   const count = classesQuery.data?.count ?? 0
   const sectionsLoading = sectionsQuery.isFetching
+  const semestersLoading = semestersQuery.isFetching
   const instructorsLoading = instructorsQuery.isFetching
   const classesLoading = classesQuery.isFetching
   const classesErrorMessage = classesQuery.error ? (classesQuery.error as Error).message : null
@@ -283,6 +323,13 @@ export default function ClassesPage() {
     if (!instructorsQuery.error) return
     showApiError(instructorsQuery.error, 'Failed to load instructors')
   }, [instructorsQuery.error, showApiError])
+
+  // Auto-select active semester on initial load
+  useEffect(() => {
+    if (activeSemester && semesterFilter === 'all') {
+      setSemesterFilter(String(activeSemester.id))
+    }
+  }, [activeSemester])
 
   useEffect(() => {
     if (searchDebounceRef.current) window.clearTimeout(searchDebounceRef.current)
@@ -486,6 +533,7 @@ export default function ClassesPage() {
 
 
   const activeFilters = [
+    semesterFilter !== 'all' ? `Semester: ${semesters.find(s => String(s.id) === semesterFilter)?.name || semesterFilter}` : null,
     sectionId !== 'all' ? `Section: ${sections.find(s => String(s.id) === sectionId)?.code || sectionId}` : null,
     dayFilter !== 'all' ? `Day: ${dayFilter}` : null,
     instructorFilter !== 'all' ? `Instructor: ${instructors.find(i => i.id === instructorFilter)?.full_name || 'Selected'}` : null,
@@ -621,6 +669,7 @@ export default function ClassesPage() {
                 onClearFilters={() => {
                   setSearch('')
                   setDebouncedSearch('')
+                  setSemesterFilter('all')
                   setSectionId('all')
                   setSort('title')
                   setSortDirection('asc')
@@ -643,6 +692,52 @@ export default function ClassesPage() {
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <AnimatedActionBtn
+                        label={
+                          semesterFilter === 'all'
+                            ? 'All Semesters'
+                            : semesters.find(s => String(s.id) === semesterFilter)?.name || 'Semester'
+                        }
+                        icon={ChevronDown}
+                        variant="secondary"
+                        className="justify-between gap-2 px-4"
+                        aria-label="Choose semester filter"
+                        disabled={semestersLoading}
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64 p-0">
+                      <div className="relative">
+                        {semestersLoading ? (
+                          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Spinner className="h-4 w-4" />
+                              Loading semesters...
+                            </div>
+                          </div>
+                        ) : null}
+                        <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-72 overflow-y-auto p-1">
+                          <DropdownMenuItem onClick={() => setSemesterFilter('all')}>
+                            All Semesters
+                          </DropdownMenuItem>
+                          <div className="my-1 border-t border-border" />
+                          {semesters.map(semester => (
+                            <DropdownMenuItem
+                              key={semester.id}
+                              onClick={() => setSemesterFilter(String(semester.id))}
+                            >
+                              <span className="flex items-center gap-2">
+                                {semester.name}
+                                {semester.is_active && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
+                              </span>
+                            </DropdownMenuItem>
+                          ))}
+                        </ReactLenis>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <AnimatedActionBtn
@@ -826,6 +921,9 @@ export default function ClassesPage() {
                   <th className="w-[100px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     <SortableTableHeader sortKey="section" label="Section" currentSort={sort} sortDirection={sortDirection} userSorted={userSorted} onSortChange={handleSort} />
                   </th>
+                  <th className="w-[150px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                    Semester
+                  </th>
                   <th className="w-[180px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     <SortableTableHeader sortKey="instructor" label="Instructor" currentSort={sort} sortDirection={sortDirection} userSorted={userSorted} onSortChange={handleSort} />
                   </th>
@@ -852,6 +950,16 @@ export default function ClassesPage() {
                     <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">{row.code ?? '-'}</td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
                       {row.section_id ? sectionLookup.get(row.section_id) ?? row.section_id : '-'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-sm sm:px-4">
+                      {row.sections?.semesters ? (
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-foreground">{row.sections.semesters.name}</span>
+                          {row.sections.semesters.is_active && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-sm text-foreground sm:px-4">
                       <div className="flex items-center gap-2.5">

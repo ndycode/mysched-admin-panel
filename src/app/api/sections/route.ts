@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
     const sb = sbService()
     const sp = new URL(req.url).searchParams
     const instructorId = sp.get('instructor_id')
+    const semesterId = sp.get('semester_id')
 
     let allowedSectionIds: number[] | null = null
     if (instructorId && instructorId !== 'all') {
@@ -67,9 +68,18 @@ export async function GET(req: NextRequest) {
       allowedSectionIds = unique
     }
 
-    const sectionsQuery = sb.from('sections').select('id, code, section_number, created_at, updated_at')
-    const filteredSectionsQuery = allowedSectionIds ? sectionsQuery.in('id', allowedSectionIds) : sectionsQuery
-    const { data: sections, error: sectionError } = await filteredSectionsQuery.order('code')
+    let sectionsQuery = sb.from('sections').select('id, code, section_number, semester_id, created_at, updated_at, semesters(id, code, name, is_active)')
+
+    // Filter by semester
+    if (semesterId && semesterId !== 'all') {
+      sectionsQuery = sectionsQuery.eq('semester_id', Number(semesterId))
+    }
+
+    if (allowedSectionIds) {
+      sectionsQuery = sectionsQuery.in('id', allowedSectionIds)
+    }
+
+    const { data: sections, error: sectionError } = await sectionsQuery.order('code')
     if (sectionError) {
       const mapped = mapDatabaseError(sectionError)
       if (mapped) return json({ error: mapped.message }, mapped.status)
@@ -126,9 +136,20 @@ export async function POST(
     const normalizedCode = input.code.trim().replace(/\s+/g, ' ').toUpperCase()
     const sb = sbService()
 
+    // Get active semester to auto-assign
+    const { data: activeSemester } = await sb
+      .from('semesters')
+      .select('id')
+      .eq('is_active', true)
+      .single()
+
     const { data, error } = await sb
       .from('sections')
-      .insert({ ...input, code: normalizedCode })
+      .insert({
+        ...input,
+        code: normalizedCode,
+        semester_id: activeSemester?.id ?? null,
+      })
       .select()
       .single()
     if (error) {

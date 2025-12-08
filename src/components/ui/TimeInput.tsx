@@ -184,19 +184,6 @@ export function TimeInput({ value, onChange, className, disabled }: TimeInputPro
                     </div>
                 </DropdownMenuContent>
             </DropdownMenu>
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <label className="sr-only" htmlFor="timeinput-typed">Type time</label>
-                <input
-                    id="timeinput-typed"
-                    aria-label="Type time (HH:MM or HH:MM AM/PM)"
-                    className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
-                    placeholder="Type time e.g. 14:30 or 2:30 pm"
-                    value={typedValue}
-                    onChange={(e) => setTypedValue(e.target.value)}
-                    onBlur={tryParseTyped}
-                    disabled={disabled}
-                />
-            </div>
             {error ? <p className="text-xs text-destructive" role="alert">{error}</p> : null}
         </div>
     )

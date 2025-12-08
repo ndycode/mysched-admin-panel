@@ -95,12 +95,34 @@ function applyMeridiem(time: ParsedTime, desired: 'am' | 'pm' | null): ParsedTim
   return { ...time, meridiem: desired }
 }
 
+/**
+ * Infers meridiem for academic schedules when not explicitly provided.
+ * Academic schedules typically run 7:00 AM - 9:00 PM.
+ *
+ * Rules:
+ * - Hours 1-6: assumed PM (afternoon/evening classes)
+ * - Hours 7-11: assumed AM (morning classes)
+ * - Hour 12: assumed PM (noon, not midnight)
+ * - Hours 13-23: already 24-hour format, no inference needed
+ */
+function inferAcademicMeridiem(hour: number): 'am' | 'pm' | null {
+  if (hour >= 1 && hour <= 6) return 'pm'
+  if (hour >= 7 && hour <= 11) return 'am'
+  if (hour === 12) return 'pm' // 12:00 is noon, not midnight
+  return null // Already 24-hour format or midnight
+}
+
 function to24Hour(time: ParsedTime): string {
-  const meridiem = time.meridiem
+  let meridiem = time.meridiem
   let hour = clampHour(time.hour)
   const minute = clampMinute(time.minute)
   if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
     throw new Error('Invalid time components')
+  }
+
+  // If no explicit meridiem and hour is in 12-hour range, infer based on academic schedule
+  if (meridiem === null && hour >= 1 && hour <= 12) {
+    meridiem = inferAcademicMeridiem(hour)
   }
 
   if (meridiem === 'am') {

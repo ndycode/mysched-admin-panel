@@ -76,6 +76,7 @@ import { ImportClassesDialog } from '../_components/dialogs/ImportClassesDialog'
 import { AddClassDialog } from '../_components/dialogs/AddClassDialog'
 import { EditClassDialog } from '../_components/dialogs/EditClassDialog'
 import { ViewClassDialog } from '../_components/dialogs/ViewClassDialog'
+import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog'
 import { inputClasses } from '@/components/ui/Input'
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
@@ -183,6 +184,8 @@ export default function ClassesPage() {
   const [viewingClass, setViewingClass] = useState<ClassDetail | null>(null)
   const [viewingLoading, setViewingLoading] = useState(false)
   const [viewingError, setViewingError] = useState<string | null>(null)
+  const [classToDelete, setClassToDelete] = useState<Row | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const toast = useToast()
   const showApiError = useCallback(
@@ -425,20 +428,24 @@ export default function ClassesPage() {
     setEditDialogOpen(true)
   }
 
-  async function deleteClass(row: Row) {
-    const confirmed = window.confirm(
-      `Delete class "${row.title ?? row.code ?? row.id}"?`,
-    )
-    if (!confirmed) return
+  function handleDeleteClass(row: Row) {
+    setClassToDelete(row)
+  }
 
+  async function confirmDeleteClass() {
+    if (!classToDelete) return
+    setIsDeleting(true)
     try {
-      await api(`/api/classes/${row.id}`, { method: 'DELETE' })
+      await api(`/api/classes/${classToDelete.id}`, { method: 'DELETE' })
       queryClient.invalidateQueries({ queryKey: ['classes'] })
       toast({ kind: 'success', msg: 'Class deleted' })
       setStatsPulse(prev => prev + 1)
+      setClassToDelete(null)
     } catch (error) {
       console.error(error)
       toast({ kind: 'error', msg: 'Delete failed' })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -890,9 +897,7 @@ export default function ClassesPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                              onClick={() => {
-                                void deleteClass(row)
-                              }}
+                              onClick={() => handleDeleteClass(row)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" aria-hidden />
                               Delete
@@ -943,6 +948,14 @@ export default function ClassesPage() {
           loading={viewingLoading}
           error={viewingError}
           onClose={closeViewDialog}
+        />
+        <DeleteConfirmationDialog
+          open={classToDelete !== null}
+          onOpenChange={(open) => !open && setClassToDelete(null)}
+          title="Delete Class"
+          description={`Are you sure you want to delete "${classToDelete?.title ?? classToDelete?.code ?? 'this class'}"? This action cannot be undone.`}
+          onConfirm={() => void confirmDeleteClass()}
+          isDeleting={isDeleting}
         />
       </div >
     </div >

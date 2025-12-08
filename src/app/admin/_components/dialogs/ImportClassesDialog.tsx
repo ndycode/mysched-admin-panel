@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { ReactLenis } from 'lenis/react'
 import { Dialog, DialogBody, DialogHeader, DialogFooter } from '@/components/ui/Dialog'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
-import { ChevronDown, X, Upload, Check, AlertTriangle, FileText } from 'lucide-react'
+import { ChevronDown, X, Upload, Check, AlertTriangle, FileText, Monitor } from 'lucide-react'
 import { motion } from 'framer-motion'
 import {
     DropdownMenu,
@@ -42,6 +42,21 @@ type ImportPreviewResponse = {
     warnings: string[]
 }
 
+function useIsMobile() {
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768)
+        }
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
+
+    return isMobile
+}
+
 export function ImportClassesDialog({
     open,
     onClose,
@@ -49,6 +64,7 @@ export function ImportClassesDialog({
     instructors,
     onImported,
 }: ImportClassesDialogProps) {
+    const isMobile = useIsMobile()
     const [sections, setSections] = useState(initialSections)
     const [file, setFile] = useState<File | null>(null)
     const [uploading, setUploading] = useState(false)
@@ -57,6 +73,35 @@ export function ImportClassesDialog({
     const [pendingSectionCode, setPendingSectionCode] = useState<string | null>(null)
     const [confirming, setConfirming] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // Handle paste from clipboard (for screenshots)
+    const handlePaste = useCallback((e: ClipboardEvent) => {
+        if (!open || previewData || isMobile) return
+
+        const items = e.clipboardData?.items
+        if (!items) return
+
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault()
+                const blob = item.getAsFile()
+                if (blob) {
+                    // Create a file with a name for the pasted image
+                    const pastedFile = new File([blob], `screenshot-${Date.now()}.png`, { type: blob.type })
+                    setFile(pastedFile)
+                }
+                break
+            }
+        }
+    }, [open, previewData, isMobile])
+
+    // Listen for paste events when dialog is open
+    useEffect(() => {
+        if (!open || previewData || isMobile) return
+
+        document.addEventListener('paste', handlePaste)
+        return () => document.removeEventListener('paste', handlePaste)
+    }, [open, previewData, isMobile, handlePaste])
 
     useEffect(() => {
         setSections(initialSections)
@@ -130,7 +175,32 @@ export function ImportClassesDialog({
             }
 
             const data: ImportPreviewResponse = await res.json()
-            setPreviewData(data)
+
+            // Auto-populate matched_instructor for detected instructors not in DB
+            const processedRows = data.rows.map(row => {
+                // If instructor_name exists but no matched_instructor, check if it's in the DB
+                if (row.instructor_name && !row.matched_instructor) {
+                    const existingInstructor = instructors.find(
+                        i => i.full_name.toLowerCase() === row.instructor_name?.toLowerCase()
+                    )
+                    if (existingInstructor) {
+                        // Match found, use it
+                        return { ...row, matched_instructor: existingInstructor }
+                    } else {
+                        // Not found, auto-select "create" option
+                        return {
+                            ...row,
+                            matched_instructor: {
+                                id: `create:${row.instructor_name}`,
+                                full_name: row.instructor_name
+                            }
+                        }
+                    }
+                }
+                return row
+            })
+
+            setPreviewData({ ...data, rows: processedRows })
 
             if (data.section) {
                 setSelectedSectionId(String(data.section.id))
@@ -140,9 +210,6 @@ export function ImportClassesDialog({
                 // Auto-select the "create" option
                 setSelectedSectionId(`create:${data.detectedSectionCode}`)
             }
-
-            // Pre-fill matched instructors in the rows if available
-            // The API already returns matched_instructor in the rows
 
         } catch (err) {
             setError((err as Error).message)
@@ -180,15 +247,12 @@ export function ImportClassesDialog({
         const res = await api('/api/instructors', {
             method: 'POST',
             body: JSON.stringify({
-                first_name: name.split(' ')[0],
-                last_name: name.split(' ').slice(1).join(' ') || name,
-                email: null, // Optional
-                employment_type: 'part_time' // Default
+                full_name: name.trim(),
             }),
         })
         // The API returns the full instructor object, we just need the summary
-        const data = res as any
-        return { id: data.id, full_name: `${data.first_name} ${data.last_name}` }
+        const data = res as { id: string; full_name: string }
+        return { id: data.id, full_name: data.full_name }
     }
 
     const handleConfirm = async () => {
@@ -400,77 +464,77 @@ export function ImportClassesDialog({
                 }
 
                 <div className="flex-1 overflow-hidden flex flex-col min-h-0 rounded-md border border-border">
-                    <div className="flex-1 overflow-auto relative">
+                    <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="flex-1 overflow-auto relative max-h-[50vh]">
                         <table className="w-full table-fixed text-sm text-left border-collapse">
                             <thead className="bg-muted/50 text-xs font-medium text-muted-foreground sticky top-0 z-10">
                                 <tr>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[9ch] min-w-[9ch] max-w-[9ch]">Day</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[11ch]">Start</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[11ch]">End</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[7ch] min-w-[7ch] max-w-[7ch]">Code</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium min-w-[14ch]">Title</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[5ch] min-w-[5ch] max-w-[5ch]">Units</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-[7ch] min-w-[7ch] max-w-[7ch]">Room</th>
-                                    <th className="px-2 sm:px-4 py-3 font-medium w-64">Instructor</th>
+                                    <th className="px-2 sm:px-3 py-3 font-medium w-16">Day</th>
+                                    <th className="px-2 sm:px-3 py-3 font-medium w-[72px]">Start</th>
+                                    <th className="px-2 sm:px-3 py-3 font-medium w-[72px]">End</th>
+                                    <th className="px-2 sm:px-3 py-3 font-medium w-[60px]">Code</th>
+                                    <th className="px-2 sm:px-3 py-3 font-medium w-56 max-w-56">Title</th>
+                                    <th className="px-2 sm:px-3 py-3 font-medium w-10">Units</th>
+                                    <th className="px-2 sm:px-3 py-3 font-medium w-14">Room</th>
+                                    <th className="px-2 sm:px-3 py-3 font-medium w-[152px]">Instructor</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {previewData.rows.map((row, i) => (
                                     <tr key={i} className="group hover:bg-muted/50 transition-colors duration-200">
-                                        <td className="px-2 sm:px-4 py-2 align-middle w-[9ch] min-w-[9ch] max-w-[9ch]">
+                                        <td className="px-2 sm:px-3 py-2 align-middle w-16">
                                             <input
                                                 value={row.day || ''}
                                                 onChange={e => updateRow(i, 'day', e.target.value)}
-                                                className="w-full max-w-[9ch] truncate !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
+                                                className="w-full !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle w-[11ch]">
+                                        <td className="px-2 sm:px-3 py-2 align-middle w-[72px]">
                                             <TimeInput
                                                 value={row.start || ''}
                                                 onChange={val => updateRow(i, 'start', val)}
                                                 className="w-full !h-8 !min-h-0 bg-transparent !px-2 !rounded-md border border-border focus:border-ring focus:ring-0 text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle w-[11ch]">
+                                        <td className="px-2 sm:px-3 py-2 align-middle w-[72px]">
                                             <TimeInput
                                                 value={row.end || ''}
                                                 onChange={val => updateRow(i, 'end', val)}
                                                 className="w-full !h-8 !min-h-0 bg-transparent !px-2 !rounded-md border border-border focus:border-ring focus:ring-0 text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle w-[7ch] min-w-[7ch] max-w-[7ch]">
+                                        <td className="px-2 sm:px-3 py-2 align-middle w-[60px]">
                                             <input
                                                 value={row.code || ''}
                                                 onChange={e => updateRow(i, 'code', e.target.value)}
-                                                className="w-full max-w-[7ch] truncate !h-8 !min-h-0 bg-transparent px-2 font-medium !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
+                                                className="w-full !h-8 !min-h-0 bg-transparent px-2 font-medium !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle">
+                                        <td className="px-2 sm:px-3 py-2 align-middle w-56 max-w-56">
                                             <input
                                                 value={row.title || ''}
                                                 onChange={e => updateRow(i, 'title', e.target.value)}
-                                                className="w-full !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
+                                                className="w-full !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors truncate"
                                                 title={row.title || ''}
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle w-[5ch] min-w-[5ch] max-w-[5ch]">
+                                        <td className="px-2 sm:px-3 py-2 align-middle w-10">
                                             <input
                                                 type="number"
                                                 min="0"
                                                 step="0.5"
                                                 value={row.units || ''}
                                                 onChange={e => updateRow(i, 'units', e.target.value)}
-                                                className="w-full max-w-[5ch] truncate !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
+                                                className="w-full !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle w-[7ch] min-w-[7ch] max-w-[7ch]">
+                                        <td className="px-2 sm:px-3 py-2 align-middle w-14">
                                             <input
                                                 value={row.room || ''}
                                                 onChange={e => updateRow(i, 'room', e.target.value)}
-                                                className="w-full max-w-[7ch] truncate !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
+                                                className="w-full !h-8 !min-h-0 bg-transparent px-2 !rounded-md border border-border focus:border-ring focus:outline-none text-xs sm:text-sm transition-colors"
                                             />
                                         </td>
-                                        <td className="px-2 sm:px-4 py-2 align-middle">
+                                        <td className="px-2 sm:px-3 py-2 align-middle w-[152px]">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <AnimatedActionBtn
@@ -525,7 +589,7 @@ export function ImportClassesDialog({
                                 )}
                             </tbody>
                         </table>
-                    </div>
+                    </ReactLenis>
 
                     {previewData.warnings.length > 0 && (
                         <div className="mt-4 rounded-md bg-yellow-500/10 p-3 text-xs text-yellow-600 dark:text-yellow-400 mx-1 mb-1">
@@ -553,65 +617,92 @@ export function ImportClassesDialog({
         <Dialog
             open={open}
             onOpenChange={(val) => !val && !uploading && !confirming && handleClose()}
-            className={previewData ? "max-w-screen-xl" : "max-w-md"}
+            className={previewData && !isMobile ? "max-w-[95vw] xl:max-w-screen-2xl" : "max-w-md"}
         >
             <DialogHeader>
                 <h2 className="text-xl font-semibold text-foreground">
                     {previewData ? 'Import classes from image' : 'Import Classes'}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    {previewData
-                        ? 'Upload a schedule photo, review the detected rows, and import them into a section.'
-                        : 'Upload an image or file to import classes.'}
+                    {isMobile
+                        ? 'This feature requires a larger screen.'
+                        : previewData
+                            ? 'Upload a schedule photo, review the detected rows, and import them into a section.'
+                            : 'Upload an image or file to import classes.'}
                 </p>
             </DialogHeader>
-            <DialogBody className={previewData ? "overflow-hidden flex flex-col" : ""} scrollable={!previewData}>
-                {error && (
-                    <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                        {error}
-                    </div>
-                )}
-
-                {!previewData ? (
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border p-10">
-                            <div className="text-center">
-                                <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
-                                <p className="mt-2 text-sm text-muted-foreground">
-                                    Drag and drop a file here, or click to select
-                                </p>
-                                <input
-                                    type="file"
-                                    className="hidden"
-                                    id="file-upload"
-                                    accept="image/*"
-                                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                                />
-                                <motion.label
-                                    htmlFor="file-upload"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="mt-4 inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-black/80 hover:shadow-xl focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                                >
-                                    Select File
-                                </motion.label>
-                                {file && (
-                                    <div className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-foreground px-4">
-                                        <FileText className="h-4 w-4 shrink-0" />
-                                        <span className="truncate max-w-64" title={file.name}>
-                                            {file.name}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+            <DialogBody className={previewData && !isMobile ? "overflow-hidden flex flex-col" : ""} scrollable={!previewData || isMobile}>
+                {isMobile ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <Monitor className="h-16 w-16 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold text-foreground mb-2">
+                            Desktop Required
+                        </h3>
+                        <p className="text-sm text-muted-foreground max-w-xs">
+                            Import from image works best on a desktop or tablet. Please use a device with a larger screen to access this feature.
+                        </p>
                     </div>
                 ) : (
-                    renderPreview()
+                    <>
+                        {error && (
+                            <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                                {error}
+                            </div>
+                        )}
+
+                        {!previewData ? (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border p-10 transition-colors hover:border-muted-foreground/50">
+                                    <div className="text-center">
+                                        <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                                        <p className="mt-2 text-sm text-muted-foreground">
+                                            Drag and drop a file here, or click to select
+                                        </p>
+                                        <p className="mt-1 text-xs text-muted-foreground/70">
+                                            or press <kbd className="px-1.5 py-0.5 text-[10px] font-semibold bg-muted rounded border border-border">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[10px] font-semibold bg-muted rounded border border-border">V</kbd> to paste a screenshot
+                                        </p>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            id="file-upload"
+                                            accept="image/*"
+                                            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                                        />
+                                        <motion.label
+                                            htmlFor="file-upload"
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            className="mt-4 inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-black/80 hover:shadow-xl focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                                        >
+                                            Select File
+                                        </motion.label>
+                                        {file && (
+                                            <div className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-foreground px-4">
+                                                <FileText className="h-4 w-4 shrink-0" />
+                                                <span className="truncate max-w-64" title={file.name}>
+                                                    {file.name}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            renderPreview()
+                        )}
+                    </>
                 )}
             </DialogBody>
             <DialogFooter>
-                {!previewData ? (
+                {isMobile ? (
+                    <AnimatedActionBtn
+                        icon={X}
+                        label="Close"
+                        onClick={handleClose}
+                        variant="secondary"
+                        className="w-full"
+                    />
+                ) : !previewData ? (
                     <>
                         <AnimatedActionBtn
                             icon={X}

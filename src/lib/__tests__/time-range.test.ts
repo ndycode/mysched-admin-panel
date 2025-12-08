@@ -34,7 +34,15 @@ describe('parseTimeRange', () => {
     expect(parseTimeRange('')).toBeNull()
     expect(parseTimeRange('9:00')).toBeNull()
     expect(parseTimeRange('bad range')).toBeNull()
-    expect(parseTimeRange('11:00-1:00')).toBeNull()
+  })
+
+  it('infers PM for ambiguous afternoon times in academic schedules', () => {
+    // "11:00-1:00" is a valid academic schedule (11 AM to 1 PM)
+    expect(parseTimeRange('11:00-1:00')).toEqual({ start: '11:00', end: '13:00' })
+    // "2:00-3:30" means 2 PM to 3:30 PM
+    expect(parseTimeRange('2:00-3:30')).toEqual({ start: '14:00', end: '15:30' })
+    // "5:00-6:30" means 5 PM to 6:30 PM
+    expect(parseTimeRange('5:00-6:30')).toEqual({ start: '17:00', end: '18:30' })
   })
 })
 

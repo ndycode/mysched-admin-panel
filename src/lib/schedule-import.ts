@@ -1,4 +1,5 @@
 import { canonicalDay, DAY_ABBREVIATIONS, type DayValue } from './days'
+import { resolveTimeRange } from './time-range'
 
 export type SchedulePreviewRow = {
   day: string | null
@@ -72,14 +73,26 @@ export function sanitizePreviewRow(
 ): SchedulePreviewRow {
   const day = cleanText(row.day ?? row.Day)
   const time = cleanText((row.time_range ?? row.timeRange ?? row.time) as unknown)
-  const start = cleanText(row.start ?? row.start_time)
-  const end = cleanText(row.end ?? row.end_time)
+  let start = cleanText(row.start ?? row.start_time)
+  let end = cleanText(row.end ?? row.end_time)
   const code = cleanText(row.code)
   const title = cleanText(row.title)
   const room = cleanText(row.room)
   const instructor_name = cleanText(row.instructor_name ?? row.instructor)
   const unitsResult = parseUnitsValue(row.units)
   if (unitsResult.warning) warnings.push(unitsResult.warning)
+
+  // Normalize times using academic schedule inference
+  // This handles ambiguous times like "2:00" → "14:00" (2 PM)
+  const resolved = resolveTimeRange({ start, end, range: time })
+  if (resolved) {
+    start = resolved.start
+    end = resolved.end
+  } else if (start || end || time) {
+    // If we have time data but couldn't parse it, add a warning
+    const timeInfo = time ?? `${start ?? ''}-${end ?? ''}`
+    warnings.push(`Could not parse time "${timeInfo}".`)
+  }
 
   return {
     day,

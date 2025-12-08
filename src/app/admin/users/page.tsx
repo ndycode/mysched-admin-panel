@@ -44,6 +44,7 @@ import type { SortOption, UserRole, UserStatus, UserRow } from './types'
 import { PageSizeSelector } from '@/components/ui/PageSizeSelector'
 import { inputClasses } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
+import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog'
 
 function RoleBadge({ role }: { role: UserRole }) {
   const tone =
@@ -93,6 +94,7 @@ export default function UsersPage() {
   const [viewingUser, setViewingUser] = useState<UserRow | null>(null)
   const [editingUser, setEditingUser] = useState<UserRow | null>(null)
   const [permissionsUser, setPermissionsUser] = useState<UserRow | null>(null)
+  const [userToDelete, setUserToDelete] = useState<UserRow | null>(null)
 
   const {
     users,
@@ -349,10 +351,16 @@ export default function UsersPage() {
     URL.revokeObjectURL(url)
   }
 
-  async function handleDelete(user: UserRow) {
-    if (!window.confirm(`Delete ${displayName(user)}?`)) return
-    await deleteUser(user.id)
-  }
+  const handleDelete = useCallback((user: UserRow) => {
+    setUserToDelete(user)
+  }, [])
+
+  const confirmDelete = useCallback(async () => {
+    if (userToDelete) {
+      await deleteUser(userToDelete.id)
+      setUserToDelete(null)
+    }
+  }, [userToDelete, deleteUser])
 
   const refreshing = isFetching && true
   const tableLoading = isFetching
@@ -419,7 +427,7 @@ export default function UsersPage() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                  onClick={() => void handleDelete(user)}
+                  onClick={() => handleDelete(user)}
                   disabled={deletingId === user.id}
                 >
                   <Trash2 className="mr-2 h-4 w-4" aria-hidden />
@@ -753,6 +761,14 @@ export default function UsersPage() {
         onUpdated={async () => {
           await refetch()
         }}
+      />
+      <DeleteConfirmationDialog
+        open={userToDelete !== null}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+        title="Delete User"
+        description={`Are you sure you want to delete ${userToDelete ? displayName(userToDelete) : 'this user'}? This action cannot be undone.`}
+        onConfirm={() => void confirmDelete()}
+        isDeleting={deletingId === userToDelete?.id}
       />
     </div >
   )

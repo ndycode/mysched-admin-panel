@@ -22,6 +22,7 @@ import { ActiveFiltersPills } from '../_components/ActiveFiltersPills'
 import { useFilterPersistence } from '../_hooks/useFilterPersistence'
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/Dialog'
 import { ScheduleDialog } from './components/ScheduleDialog'
+import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog'
 
 import { PageSizeSelector } from '@/components/ui/PageSizeSelector'
 import { cn } from '@/lib/utils'
@@ -75,6 +76,8 @@ export default function InstructorsPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [editing, setEditing] = useState<Instructor | null>(null)
   const [scheduleInstructor, setScheduleInstructor] = useState<Instructor | null>(null)
+  const [instructorToDelete, setInstructorToDelete] = useState<Instructor | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const FILTER_STORAGE_KEY = 'admin_instructors_filters'
 
   const toast = useToast()
@@ -256,10 +259,15 @@ export default function InstructorsPage() {
     [invalidate, toast],
   )
 
-  const handleDelete = useCallback(
-    async (row: Instructor) => {
-      if (!window.confirm(`Delete ${row.full_name}?`)) return
-      await api(`/api/instructors/${row.id}`, {
+  const handleDelete = useCallback((row: Instructor) => {
+    setInstructorToDelete(row)
+  }, [])
+
+  const confirmDelete = useCallback(async () => {
+    if (!instructorToDelete) return
+    setIsDeleting(true)
+    try {
+      await api(`/api/instructors/${instructorToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -267,9 +275,11 @@ export default function InstructorsPage() {
       })
       toast({ kind: 'success', msg: 'Instructor deleted' })
       invalidate()
-    },
-    [invalidate, toast],
-  )
+      setInstructorToDelete(null)
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [instructorToDelete, invalidate, toast])
 
   const headerActions = (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
@@ -329,7 +339,7 @@ export default function InstructorsPage() {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-              onClick={() => void handleDelete(row)}
+              onClick={() => handleDelete(row)}
             >
               <Trash2 className="mr-2 h-4 w-4" aria-hidden />
               Delete Instructor
@@ -555,6 +565,14 @@ export default function InstructorsPage() {
             open={scheduleInstructor != null}
             instructor={scheduleInstructor}
             onClose={() => setScheduleInstructor(null)}
+          />
+          <DeleteConfirmationDialog
+            open={instructorToDelete !== null}
+            onOpenChange={(open) => !open && setInstructorToDelete(null)}
+            title="Delete Instructor"
+            description={`Are you sure you want to delete ${instructorToDelete?.full_name ?? 'this instructor'}? This action cannot be undone.`}
+            onConfirm={() => void confirmDelete()}
+            isDeleting={isDeleting}
           />
         </div>
       </div>

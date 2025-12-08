@@ -169,7 +169,7 @@ function parseSectionId(raw: FormDataEntryValue | null): number | null {
 
 export async function POST(req: NextRequest) {
   try {
-    await throttle(getClientIp(req), { windowMs: 60_000, limit: 12 })
+    // No rate limiting - user handles API costs
     assertSameOrigin(req)
     await requireAdmin()
 

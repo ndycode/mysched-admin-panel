@@ -248,7 +248,7 @@ const buildActivitySeries = (range: string, events: AuditEntry[]) => {
   }))
 }
 
-function QuickActionBtn({ icon, label, onClick, variant = 'secondary', className }: { icon: any; label: string; onClick: () => void; variant?: 'primary' | 'secondary'; className?: string }) {
+function QuickActionBtn({ icon, label, onClick, variant = 'secondary', className }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; variant?: 'primary' | 'secondary'; className?: string }) {
   return (
     <AnimatedActionBtn
       icon={icon}

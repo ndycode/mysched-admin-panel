@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion'
 
 type InputSize = 'sm' | 'md' | 'lg'
 
@@ -44,6 +44,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, erro
       whileFocus={{ scale: 1.01 }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       className={inputClasses({ className, hasError: Boolean(error), size })}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       {...(props as any)}
     />
     <AnimatePresence>
@@ -74,6 +75,7 @@ export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<H
           'focus:outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20',
           className
         )}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {...(props as any)}
       >
         {children}
@@ -94,6 +96,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttrib
         'focus:outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20',
         className
       )}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       {...(props as any)}
     />
   )

@@ -27,7 +27,7 @@ const DialogContext = React.createContext<{
   bodyId?: string
 }>({
   open: false,
-  onOpenChange: () => {},
+  onOpenChange: () => { },
 })
 
 interface DialogProps {
@@ -195,17 +195,17 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
       }
     }, [open, handleOpenChange, initialFocus])
 
-  if (!mounted) return null
+    if (!mounted) return null
 
-  return createPortal(
-    <DialogContext.Provider
-      value={{
-        open,
-        onOpenChange: handleOpenChange,
-        headerId,
-        bodyId,
-      }}
-    >
+    return createPortal(
+      <DialogContext.Provider
+        value={{
+          open,
+          onOpenChange: handleOpenChange,
+          headerId,
+          bodyId,
+        }}
+      >
         <AnimatePresence mode="wait" initial={false}>
           {open && (
             <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
@@ -325,6 +325,7 @@ export function DialogBody({
       options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }}
       id={bodyId ?? fallbackId}
     >
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       {children as any}
     </ReactLenis>
   )

@@ -86,6 +86,7 @@ const DropdownMenuSubContent = React.forwardRef<
                     options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }}
                     className="max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto p-2"
                 >
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {children as any}
                 </ReactLenis>
             </motion.div>
@@ -141,6 +142,7 @@ const DropdownMenuContent = React.forwardRef<
                         options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }}
                         className="max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto p-2"
                     >
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {children as any}
                     </ReactLenis>
                 </motion.div>

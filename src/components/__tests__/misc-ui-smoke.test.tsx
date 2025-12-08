@@ -18,6 +18,7 @@ import { TimeInput } from '../ui/TimeInput'
 
 vi.mock('next/link', () => ({
   __esModule: true,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   default: ({ href, children, ...props }: any) => (
     <a href={href} {...props}>
       {children}
@@ -53,7 +54,7 @@ describe('UI component smoke tests', () => {
   })
 
   test('PageSizeSelector lists options', () => {
-    render(<PageSizeSelector pageSize={10} onPageSizeChange={() => {}} options={[10, 20, 50]} />)
+    render(<PageSizeSelector pageSize={10} onPageSizeChange={() => { }} options={[10, 20, 50]} />)
     expect(screen.getByText('10')).toBeInTheDocument()
     expect(screen.getByText('20')).toBeInTheDocument()
   })
@@ -104,12 +105,12 @@ describe('UI component smoke tests', () => {
   })
 
   test('TimeInput shows placeholder label when empty', () => {
-    render(<TimeInput value="" onChange={() => {}} />)
+    render(<TimeInput value="" onChange={() => { }} />)
     expect(screen.getByText('--:-- --')).toBeInTheDocument()
   })
 
   test('TimeInput clamps out-of-range values', () => {
-    render(<TimeInput value="25:99" onChange={() => {}} />)
+    render(<TimeInput value="25:99" onChange={() => { }} />)
     expect(screen.getByRole('button', { name: /11:59 PM/i })).toBeInTheDocument()
   })
 

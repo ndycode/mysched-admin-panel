@@ -28,6 +28,7 @@ export function LiquidGlassButton({
             disabled={disabled || isLoading}
             whileHover="hover"
             initial="idle"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             {...props as any}
         >
             {/* Liquid Background Layer */}

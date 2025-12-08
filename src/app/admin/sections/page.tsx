@@ -63,7 +63,9 @@ import { Skeleton } from '@/components/ui/Skeleton'
 
 // Note: Using 'any' here because ReactLenis has complex prop types that don't align with React.PropsWithChildren
 // This is a third-party library compatibility issue and is isolated to this wrapper
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const LenisWrapper: React.ComponentType<any> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   typeof ReactLenis !== 'undefined' ? ReactLenis : ((props: any) => <div {...props} />)
 
 
@@ -364,6 +366,7 @@ function EditSectionDialog({ section, open, onClose, onUpdated }: EditSectionDia
   }
 
   return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()} className="max-w-3xl" initialFocus={sectionNumberRef as any}>
       {currentSection && currentSection.id !== null ? (
         <>

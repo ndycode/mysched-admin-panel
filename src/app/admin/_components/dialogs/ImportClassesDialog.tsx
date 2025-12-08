@@ -70,42 +70,57 @@ export function ImportClassesDialog({
     const [semesters, setSemesters] = useState<Semester[]>([])
     const [semestersLoading, setSemestersLoading] = useState(true)
     const [selectedSemesterId, setSelectedSemesterId] = useState<number | null>(null)
-    const [file, setFile] = useState<File | null>(null)
+    // Multi-image upload state
+    const [files, setFiles] = useState<File[]>([])
     const [uploading, setUploading] = useState(false)
-    const [previewData, setPreviewData] = useState<ImportPreviewResponse | null>(null)
-    const [selectedSectionId, setSelectedSectionId] = useState<string>('none')
-    const [pendingSectionCode, setPendingSectionCode] = useState<string | null>(null)
+    const [analyzeProgress, setAnalyzeProgress] = useState({ current: 0, total: 0 })
+
+    // Multi-preview state: array of preview data for each analyzed image
+    const [allPreviewData, setAllPreviewData] = useState<ImportPreviewResponse[]>([])
+    const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0)
+
+    // Per-preview selections (section/semester stored per image)
+    const [selectedSectionIds, setSelectedSectionIds] = useState<string[]>([])
+    const [pendingSectionCodes, setPendingSectionCodes] = useState<(string | null)[]>([])
+
     const [confirming, setConfirming] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Handle paste from clipboard (for screenshots)
+    // Derived state for current preview
+    const currentPreviewData = allPreviewData[currentPreviewIndex] ?? null
+    const selectedSectionId = selectedSectionIds[currentPreviewIndex] ?? 'none'
+    const pendingSectionCode = pendingSectionCodes[currentPreviewIndex] ?? null
+
+    // Handle paste from clipboard (for screenshots) - add to existing files
     const handlePaste = useCallback((e: ClipboardEvent) => {
-        if (!open || previewData || isMobile) return
+        if (!open || allPreviewData.length > 0 || isMobile) return
 
         const items = e.clipboardData?.items
         if (!items) return
 
+        const pastedFiles: File[] = []
         for (const item of items) {
             if (item.type.startsWith('image/')) {
                 e.preventDefault()
                 const blob = item.getAsFile()
                 if (blob) {
-                    // Create a file with a name for the pasted image
                     const pastedFile = new File([blob], `screenshot-${Date.now()}.png`, { type: blob.type })
-                    setFile(pastedFile)
+                    pastedFiles.push(pastedFile)
                 }
-                break
             }
         }
-    }, [open, previewData, isMobile])
+        if (pastedFiles.length > 0) {
+            setFiles(prev => [...prev, ...pastedFiles])
+        }
+    }, [open, allPreviewData.length, isMobile])
 
     // Listen for paste events when dialog is open
     useEffect(() => {
-        if (!open || previewData || isMobile) return
+        if (!open || allPreviewData.length > 0 || isMobile) return
 
         document.addEventListener('paste', handlePaste)
         return () => document.removeEventListener('paste', handlePaste)
-    }, [open, previewData, isMobile, handlePaste])
+    }, [open, allPreviewData.length, isMobile, handlePaste])
 
     useEffect(() => {
         setSections(initialSections)
@@ -179,68 +194,82 @@ export function ImportClassesDialog({
     }
 
     const handleUpload = async () => {
-        if (!file) return
+        if (files.length === 0) return
         setUploading(true)
         setError(null)
-        setPendingSectionCode(null)
-        setSelectedSectionId('none')
+        setAnalyzeProgress({ current: 0, total: files.length })
+
+        const previews: ImportPreviewResponse[] = []
+        const sectionIds: string[] = []
+        const sectionCodes: (string | null)[] = []
 
         try {
-            const resizedBlob = await resizeImage(file)
-            const formData = new FormData()
-            formData.append('image', resizedBlob, file.name)
+            for (let i = 0; i < files.length; i++) {
+                setAnalyzeProgress({ current: i + 1, total: files.length })
 
-            const res = await fetch('/api/classes/import-image', {
-                method: 'POST',
-                body: formData,
-            })
+                const currentFile = files[i]
+                const resizedBlob = await resizeImage(currentFile)
+                const formData = new FormData()
+                formData.append('image', resizedBlob, currentFile.name)
 
-            if (!res.ok) {
-                const data = await res.json()
-                throw new Error(data.error || 'Failed to upload image')
-            }
+                const res = await fetch('/api/classes/import-image', {
+                    method: 'POST',
+                    body: formData,
+                })
 
-            const data: ImportPreviewResponse = await res.json()
+                if (!res.ok) {
+                    const data = await res.json()
+                    throw new Error(`Image ${i + 1}: ${data.error || 'Failed to upload image'}`)
+                }
 
-            // Auto-populate matched_instructor for detected instructors not in DB
-            const processedRows = data.rows.map(row => {
-                // If instructor_name exists but no matched_instructor, check if it's in the DB
-                if (row.instructor_name && !row.matched_instructor) {
-                    const existingInstructor = instructors.find(
-                        i => i.full_name.toLowerCase() === row.instructor_name?.toLowerCase()
-                    )
-                    if (existingInstructor) {
-                        // Match found, use it
-                        return { ...row, matched_instructor: existingInstructor }
-                    } else {
-                        // Not found, auto-select "create" option
-                        return {
-                            ...row,
-                            matched_instructor: {
-                                id: `create:${row.instructor_name}`,
-                                full_name: row.instructor_name
+                const data: ImportPreviewResponse = await res.json()
+
+                // Auto-populate matched_instructor for detected instructors not in DB
+                const processedRows = data.rows.map((row: SchedulePreviewRow) => {
+                    if (row.instructor_name && !row.matched_instructor) {
+                        const existingInstructor = instructors.find(
+                            inst => inst.full_name.toLowerCase() === row.instructor_name?.toLowerCase()
+                        )
+                        if (existingInstructor) {
+                            return { ...row, matched_instructor: existingInstructor }
+                        } else {
+                            return {
+                                ...row,
+                                matched_instructor: {
+                                    id: `create:${row.instructor_name}`,
+                                    full_name: row.instructor_name
+                                }
                             }
                         }
                     }
+                    return row
+                })
+
+                previews.push({ ...data, rows: processedRows })
+
+                // Determine section selection for this image
+                if (data.section) {
+                    sectionIds.push(String(data.section.id))
+                    sectionCodes.push(null)
+                } else if (data.detectedSectionCode) {
+                    sectionIds.push(`create:${data.detectedSectionCode}`)
+                    sectionCodes.push(data.detectedSectionCode)
+                } else {
+                    sectionIds.push('none')
+                    sectionCodes.push(null)
                 }
-                return row
-            })
-
-            setPreviewData({ ...data, rows: processedRows })
-
-            if (data.section) {
-                setSelectedSectionId(String(data.section.id))
-            } else if (data.detectedSectionCode) {
-                // If section not found but code detected, set as pending creation
-                setPendingSectionCode(data.detectedSectionCode)
-                // Auto-select the "create" option
-                setSelectedSectionId(`create:${data.detectedSectionCode}`)
             }
+
+            setAllPreviewData(previews)
+            setSelectedSectionIds(sectionIds)
+            setPendingSectionCodes(sectionCodes)
+            setCurrentPreviewIndex(0)
 
         } catch (err) {
             setError((err as Error).message)
         } finally {
             setUploading(false)
+            setAnalyzeProgress({ current: 0, total: 0 })
         }
     }
 
@@ -248,7 +277,10 @@ export function ImportClassesDialog({
         const normalizedCode = code.trim().replace(/\s+/g, ' ').toUpperCase()
         const res = await api('/api/sections', {
             method: 'POST',
-            body: JSON.stringify({ code: normalizedCode }),
+            body: JSON.stringify({
+                code: normalizedCode,
+                semester_id: selectedSemesterId,
+            }),
         })
         return res as Section
     }
@@ -261,8 +293,17 @@ export function ImportClassesDialog({
             const newSection = await createSection(code)
 
             setSections(prev => [...prev, newSection])
-            setSelectedSectionId(String(newSection.id))
-            setPendingSectionCode(null)
+            // Update for current preview
+            setSelectedSectionIds(prev => {
+                const updated = [...prev]
+                updated[currentPreviewIndex] = String(newSection.id)
+                return updated
+            })
+            setPendingSectionCodes(prev => {
+                const updated = [...prev]
+                updated[currentPreviewIndex] = null
+                return updated
+            })
         } catch (error) {
             const { message } = normalizeApiError(error, 'Failed to create section')
             setError(message)
@@ -282,103 +323,103 @@ export function ImportClassesDialog({
     }
 
     const handleConfirm = async () => {
-        if (!previewData) return
-
-        // If we have a pending section code, create it first
-        let finalSectionId = selectedSectionId
-        if (finalSectionId.startsWith('create:')) {
-            const code = finalSectionId.replace('create:', '')
-            setConfirming(true) // Show loading state early
-            try {
-                const newSection = await createSection(code)
-                setSections(prev => [...prev, newSection])
-                finalSectionId = String(newSection.id)
-            } catch (error) {
-                const { message } = normalizeApiError(error, 'Failed to create section')
-                setError(message)
-                setConfirming(false)
-                return
-            }
-        }
-
-        // Create any pending instructors first
-        const pendingInstructorNames = new Set<string>()
-        previewData.rows.forEach(row => {
-            const instructorValue = row.matched_instructor?.id
-            if (instructorValue && instructorValue.startsWith('create:')) {
-                pendingInstructorNames.add(instructorValue.replace('create:', ''))
-            }
-        })
-
-        const createdInstructorsMap = new Map<string, string>() // name -> id
-
-        if (pendingInstructorNames.size > 0) {
-            setConfirming(true)
-            try {
-                for (const name of pendingInstructorNames) {
-                    const newInstructor = await createInstructor(name)
-                    createdInstructorsMap.set(name, newInstructor.id)
-                }
-            } catch (error) {
-                const { message } = normalizeApiError(error, 'Failed to create instructor')
-                setError(message)
-                setConfirming(false)
-                return
-            }
-        }
-
-        if (finalSectionId === 'none' || !finalSectionId) {
-            setError("Please select or create a section.")
-            return
-        }
-
-        if (!selectedSemesterId) {
-            setError("Please select a semester.")
-            return
-        }
+        if (allPreviewData.length === 0) return
 
         setConfirming(true)
         setError(null)
 
+        let totalImported = 0
+
         try {
-            const payload = {
-                section_id: parseInt(finalSectionId, 10),
-                semester_id: selectedSemesterId,
-                classes: previewData.rows.map(row => {
-                    let instructorId = row.matched_instructor?.id ?? null
+            // Process each image's preview data
+            for (let idx = 0; idx < allPreviewData.length; idx++) {
+                const preview = allPreviewData[idx]
+                let finalSectionId = selectedSectionIds[idx] ?? 'none'
 
-                    // If it was a create request, map to the new ID
-                    if (instructorId && instructorId.startsWith('create:')) {
-                        const name = instructorId.replace('create:', '')
-                        instructorId = createdInstructorsMap.get(name) ?? null
+                // If we have a pending section code, create it first
+                if (finalSectionId.startsWith('create:')) {
+                    const code = finalSectionId.replace('create:', '')
+                    try {
+                        const newSection = await createSection(code)
+                        setSections(prev => [...prev, newSection])
+                        finalSectionId = String(newSection.id)
+                    } catch (error) {
+                        const { message } = normalizeApiError(error, 'Failed to create section')
+                        throw new Error(`Image ${idx + 1}: ${message}`)
                     }
+                }
 
-                    return {
-                        day: row.day,
-                        start: row.start,
-                        end: row.end,
-                        code: row.code || 'UNKNOWN',
-                        title: row.title || 'Unknown Class',
-                        units: row.units,
-                        room: row.room,
-                        instructor_id: instructorId,
+                // Create any pending instructors first
+                const pendingInstructorNames = new Set<string>()
+                preview.rows.forEach((row: SchedulePreviewRow) => {
+                    const instructorValue = row.matched_instructor?.id
+                    if (instructorValue && instructorValue.startsWith('create:')) {
+                        pendingInstructorNames.add(instructorValue.replace('create:', ''))
                     }
                 })
+
+                const createdInstructorsMap = new Map<string, string>()
+
+                if (pendingInstructorNames.size > 0) {
+                    try {
+                        for (const name of pendingInstructorNames) {
+                            const newInstructor = await createInstructor(name)
+                            createdInstructorsMap.set(name, newInstructor.id)
+                        }
+                    } catch (error) {
+                        const { message } = normalizeApiError(error, 'Failed to create instructor')
+                        throw new Error(`Image ${idx + 1}: ${message}`)
+                    }
+                }
+
+                if (finalSectionId === 'none' || !finalSectionId) {
+                    throw new Error(`Image ${idx + 1}: Please select or create a section.`)
+                }
+
+                if (!selectedSemesterId) {
+                    throw new Error(`Please select a semester.`)
+                }
+
+                const payload = {
+                    section_id: parseInt(finalSectionId, 10),
+                    semester_id: selectedSemesterId,
+                    classes: preview.rows.map((row: SchedulePreviewRow) => {
+                        let instructorId = row.matched_instructor?.id ?? null
+
+                        if (instructorId && instructorId.startsWith('create:')) {
+                            const name = instructorId.replace('create:', '')
+                            instructorId = createdInstructorsMap.get(name) ?? null
+                        }
+
+                        return {
+                            day: row.day,
+                            start: row.start,
+                            end: row.end,
+                            code: row.code || 'UNKNOWN',
+                            title: row.title || 'Unknown Class',
+                            units: row.units,
+                            room: row.room,
+                            instructor_id: instructorId,
+                        }
+                    })
+                }
+
+                const res = await fetch('/api/classes/import-confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                })
+
+                if (!res.ok) {
+                    const data = await res.json()
+                    throw new Error(`Image ${idx + 1}: ${data.error || 'Failed to confirm import'}`)
+                }
+
+                const result = await res.json()
+                totalImported += result.count
             }
 
-            const res = await fetch('/api/classes/import-confirm', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            })
-
-            if (!res.ok) {
-                const data = await res.json()
-                throw new Error(data.error || 'Failed to confirm import')
-            }
-
-            const result = await res.json()
-            onImported(result.count)
+            onImported(totalImported)
             handleClose()
         } catch (err) {
             setError((err as Error).message)
@@ -388,34 +429,52 @@ export function ImportClassesDialog({
     }
 
     const handleClose = () => {
-        setFile(null)
-        setPreviewData(null)
-        setSelectedSectionId('none')
+        setFiles([])
+        setAllPreviewData([])
+        setCurrentPreviewIndex(0)
+        setSelectedSectionIds([])
+        setPendingSectionCodes([])
         setSelectedSemesterId(null)
-        setPendingSectionCode(null)
         setError(null)
+        setAnalyzeProgress({ current: 0, total: 0 })
         onClose()
     }
 
     const updateRow = (index: number, field: keyof SchedulePreviewRow, value: string) => {
-        if (!previewData) return
-        const newRows = [...previewData.rows]
+        if (!currentPreviewData) return
+        const newRows = [...currentPreviewData.rows]
         newRows[index] = { ...newRows[index], [field]: value }
-        setPreviewData({ ...previewData, rows: newRows })
+        setAllPreviewData(prev => {
+            const updated = [...prev]
+            updated[currentPreviewIndex] = { ...currentPreviewData, rows: newRows }
+            return updated
+        })
     }
 
     const handleSectionChange = async (value: string) => {
-        setSelectedSectionId(value)
+        setSelectedSectionIds(prev => {
+            const updated = [...prev]
+            updated[currentPreviewIndex] = value
+            return updated
+        })
         if (value.startsWith('create:')) {
-            setPendingSectionCode(value.replace('create:', ''))
+            setPendingSectionCodes(prev => {
+                const updated = [...prev]
+                updated[currentPreviewIndex] = value.replace('create:', '')
+                return updated
+            })
         } else {
-            setPendingSectionCode(null)
+            setPendingSectionCodes(prev => {
+                const updated = [...prev]
+                updated[currentPreviewIndex] = null
+                return updated
+            })
         }
     }
 
     const updateRowInstructor = (index: number, value: string) => {
-        if (!previewData) return
-        const newRows = [...previewData.rows]
+        if (!currentPreviewData) return
+        const newRows = [...currentPreviewData.rows]
 
         let newInstructor: { id: string, full_name: string } | null = null
 
@@ -423,18 +482,24 @@ export function ImportClassesDialog({
             newInstructor = null
         } else if (value.startsWith('create:')) {
             const name = value.replace('create:', '')
-            newInstructor = { id: value, full_name: name } // Temporary ID for create
+            newInstructor = { id: value, full_name: name }
         } else {
-            const found = instructors.find(i => i.id === value)
+            const found = instructors.find(inst => inst.id === value)
             if (found) newInstructor = found
         }
 
         newRows[index] = { ...newRows[index], matched_instructor: newInstructor }
-        setPreviewData({ ...previewData, rows: newRows })
+        setAllPreviewData(prev => {
+            const updated = [...prev]
+            updated[currentPreviewIndex] = { ...currentPreviewData, rows: newRows }
+            return updated
+        })
     }
 
+
+
     const renderPreview = () => {
-        if (!previewData) return null
+        if (!currentPreviewData) return null
 
         return (
             <div className="flex flex-col h-full gap-4">
@@ -442,7 +507,7 @@ export function ImportClassesDialog({
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-foreground">Detected section</label>
                         <div className="flex h-11 w-full items-center rounded-md border border-input bg-muted/50 px-3 py-1 text-sm shadow-sm">
-                            {previewData.detectedSectionCode || previewData.section?.code || 'None'}
+                            {currentPreviewData.detectedSectionCode || currentPreviewData.section?.code || 'None'}
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -465,12 +530,12 @@ export function ImportClassesDialog({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-52 p-0" align="start">
                                 <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-72 overflow-y-auto p-1">
-                                    {previewData.detectedSectionCode && (
+                                    {currentPreviewData.detectedSectionCode && (
                                         <>
                                             <DropdownMenuItem
-                                                onClick={() => handleSectionChange(`create:${previewData.detectedSectionCode}`)}
+                                                onClick={() => handleSectionChange(`create:${currentPreviewData.detectedSectionCode}`)}
                                             >
-                                                Create {previewData.detectedSectionCode}
+                                                Create {currentPreviewData.detectedSectionCode}
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                         </>
@@ -495,7 +560,15 @@ export function ImportClassesDialog({
                                 <AnimatedActionBtn
                                     label={
                                         selectedSemesterId
-                                            ? semesters.find(s => s.id === selectedSemesterId)?.name || 'Select semester...'
+                                            ? (() => {
+                                                const sem = semesters.find(s => s.id === selectedSemesterId)
+                                                return sem ? (
+                                                    <span className="flex items-center gap-2">
+                                                        {sem.name}
+                                                        {sem.is_active && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
+                                                    </span>
+                                                ) : 'Select semester...'
+                                            })()
                                             : 'Select semester...'
                                     }
                                     icon={ChevronDown}
@@ -524,8 +597,8 @@ export function ImportClassesDialog({
                 </div>
 
                 {
-                    previewData.message && (
-                        <p className="text-xs text-muted-foreground">{previewData.message}</p>
+                    currentPreviewData.message && (
+                        <p className="text-xs text-muted-foreground">{currentPreviewData.message}</p>
                     )
                 }
 
@@ -545,7 +618,7 @@ export function ImportClassesDialog({
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {previewData.rows.map((row, i) => (
+                                {currentPreviewData.rows.map((row: SchedulePreviewRow, i: number) => (
                                     <tr key={i} className="group hover:bg-muted/50 transition-colors duration-200">
                                         <td className="px-2 sm:px-3 py-2 align-middle w-16">
                                             <input
@@ -621,7 +694,7 @@ export function ImportClassesDialog({
                                                         <DropdownMenuItem onClick={() => updateRowInstructor(i, 'none')}>
                                                             Unassigned
                                                         </DropdownMenuItem>
-                                                        {row.instructor_name && !instructors.some(i => i.full_name.toLowerCase() === row.instructor_name?.toLowerCase()) && (
+                                                        {row.instructor_name && !instructors.some(inst => inst.full_name.toLowerCase() === row.instructor_name?.toLowerCase()) && (
                                                             <>
                                                                 <DropdownMenuItem
                                                                     onClick={() => updateRowInstructor(i, `create:${row.instructor_name}`)}
@@ -646,7 +719,7 @@ export function ImportClassesDialog({
                                         </td>
                                     </tr>
                                 ))}
-                                {previewData.rows.length === 0 && (
+                                {currentPreviewData.rows.length === 0 && (
                                     <tr>
                                         <td colSpan={8} className="px-6 py-12 text-center text-sm text-muted-foreground">
                                             No classes detected.
@@ -657,18 +730,18 @@ export function ImportClassesDialog({
                         </table>
                     </ReactLenis>
 
-                    {previewData.warnings.length > 0 && (
+                    {currentPreviewData.warnings.length > 0 && (
                         <div className="mt-4 rounded-md bg-yellow-500/10 p-3 text-xs text-yellow-600 dark:text-yellow-400 mx-1 mb-1">
                             <div className="mb-1 flex items-center gap-1 font-semibold">
                                 <AlertTriangle className="h-3 w-3" />
                                 Warnings
                             </div>
                             <ul className="list-inside list-disc space-y-0.5">
-                                {previewData.warnings.slice(0, 3).map((w, i) => (
+                                {currentPreviewData.warnings.slice(0, 3).map((w: string, i: number) => (
                                     <li key={i}>{w}</li>
                                 ))}
-                                {previewData.warnings.length > 3 && (
-                                    <li>+ {previewData.warnings.length - 3} more warnings</li>
+                                {currentPreviewData.warnings.length > 3 && (
+                                    <li>+ {currentPreviewData.warnings.length - 3} more warnings</li>
                                 )}
                             </ul>
                         </div>
@@ -683,21 +756,21 @@ export function ImportClassesDialog({
         <Dialog
             open={open}
             onOpenChange={(val) => !val && !uploading && !confirming && handleClose()}
-            className={previewData && !isMobile ? "max-w-[95vw] xl:max-w-screen-2xl" : "max-w-md"}
+            className={allPreviewData.length > 0 && !isMobile ? "max-w-[95vw] xl:max-w-screen-2xl" : "max-w-md"}
         >
             <DialogHeader>
                 <h2 className="text-xl font-semibold text-foreground">
-                    {previewData ? 'Import classes from image' : 'Import Classes'}
+                    {allPreviewData.length > 0 ? 'Import classes from image' : 'Import Classes'}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                     {isMobile
                         ? 'This feature requires a larger screen.'
-                        : previewData
-                            ? 'Upload a schedule photo, review the detected rows, and import them into a section.'
-                            : 'Upload an image or file to import classes.'}
+                        : allPreviewData.length > 0
+                            ? 'Review the detected rows and import them into a section.'
+                            : 'Upload one or more schedule images to import classes.'}
                 </p>
             </DialogHeader>
-            <DialogBody className={previewData && !isMobile ? "overflow-hidden flex flex-col" : ""} scrollable={!previewData || isMobile}>
+            <DialogBody className={allPreviewData.length > 0 && !isMobile ? "overflow-hidden flex flex-col" : ""} scrollable={allPreviewData.length === 0 || isMobile}>
                 {isMobile ? (
                     <div className="flex flex-col items-center justify-center py-10 text-center">
                         <Monitor className="h-16 w-16 text-muted-foreground mb-4" />
@@ -716,23 +789,29 @@ export function ImportClassesDialog({
                             </div>
                         )}
 
-                        {!previewData ? (
+                        {allPreviewData.length === 0 ? (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-border p-10 transition-colors hover:border-muted-foreground/50">
                                     <div className="text-center">
                                         <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
                                         <p className="mt-2 text-sm text-muted-foreground">
-                                            Drag and drop a file here, or click to select
+                                            Drag and drop files here, or click to select
                                         </p>
                                         <p className="mt-1 text-xs text-muted-foreground/70">
-                                            or press <kbd className="px-1.5 py-0.5 text-[10px] font-semibold bg-muted rounded border border-border">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[10px] font-semibold bg-muted rounded border border-border">V</kbd> to paste a screenshot
+                                            Supports multiple images • or press <kbd className="px-1.5 py-0.5 text-[10px] font-semibold bg-muted rounded border border-border">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-[10px] font-semibold bg-muted rounded border border-border">V</kbd> to paste
                                         </p>
                                         <input
                                             type="file"
                                             className="hidden"
                                             id="file-upload"
                                             accept="image/*"
-                                            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                                            multiple
+                                            onChange={(e) => {
+                                                const selectedFiles = e.target.files
+                                                if (selectedFiles) {
+                                                    setFiles(prev => [...prev, ...Array.from(selectedFiles)])
+                                                }
+                                            }}
                                         />
                                         <motion.label
                                             htmlFor="file-upload"
@@ -740,13 +819,13 @@ export function ImportClassesDialog({
                                             whileTap={{ scale: 0.95 }}
                                             className="mt-4 inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-black/80 hover:shadow-xl focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                                         >
-                                            Select File
+                                            Select Files
                                         </motion.label>
-                                        {file && (
+                                        {files.length > 0 && (
                                             <div className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-foreground px-4">
                                                 <FileText className="h-4 w-4 shrink-0" />
-                                                <span className="truncate max-w-64" title={file.name}>
-                                                    {file.name}
+                                                <span className="truncate max-w-64">
+                                                    {files.length === 1 ? files[0].name : `${files.length} files selected`}
                                                 </span>
                                             </div>
                                         )}
@@ -768,7 +847,7 @@ export function ImportClassesDialog({
                         variant="secondary"
                         className="w-full"
                     />
-                ) : !previewData ? (
+                ) : allPreviewData.length === 0 ? (
                     <>
                         <AnimatedActionBtn
                             icon={X}
@@ -779,32 +858,64 @@ export function ImportClassesDialog({
                         />
                         <AnimatedActionBtn
                             icon={Upload}
-                            label="Analyze image"
+                            label={analyzeProgress.total > 0 ? `Analyzing ${analyzeProgress.current} of ${analyzeProgress.total}...` : "Analyze images"}
                             onClick={handleUpload}
-                            disabled={!file || uploading}
+                            disabled={files.length === 0 || uploading}
                             isLoading={uploading}
-                            loadingLabel="Analyzing..."
+                            loadingLabel={analyzeProgress.total > 1 ? `Analyzing ${analyzeProgress.current} of ${analyzeProgress.total}...` : "Analyzing..."}
                             variant="primary"
                         />
                     </>
                 ) : (
                     <>
-                        <AnimatedActionBtn
-                            icon={X}
-                            label="Start over"
-                            onClick={handleClose}
-                            disabled={confirming}
-                            variant="secondary"
-                        />
-                        <AnimatedActionBtn
-                            icon={Check}
-                            label="Confirm import"
-                            onClick={handleConfirm}
-                            disabled={(selectedSectionId === 'none' && !pendingSectionCode) || confirming}
-                            isLoading={confirming}
-                            loadingLabel="Importing..."
-                            variant="primary"
-                        />
+                        {/* Progress indicator */}
+                        {allPreviewData.length > 1 && (
+                            <span className="text-sm text-muted-foreground mr-auto">
+                                Image {currentPreviewIndex + 1} of {allPreviewData.length}
+                            </span>
+                        )}
+
+                        {/* Left button: Start over or Back */}
+                        {currentPreviewIndex === 0 ? (
+                            <AnimatedActionBtn
+                                icon={X}
+                                label="Start over"
+                                onClick={handleClose}
+                                disabled={confirming}
+                                variant="secondary"
+                            />
+                        ) : (
+                            <AnimatedActionBtn
+                                icon={ChevronDown}
+                                label="Back"
+                                onClick={() => setCurrentPreviewIndex(prev => prev - 1)}
+                                disabled={confirming}
+                                variant="secondary"
+                                className="[&>svg]:rotate-90"
+                            />
+                        )}
+
+                        {/* Right button: Next or Confirm import */}
+                        {currentPreviewIndex < allPreviewData.length - 1 ? (
+                            <AnimatedActionBtn
+                                icon={ChevronDown}
+                                label="Next"
+                                onClick={() => setCurrentPreviewIndex(prev => prev + 1)}
+                                disabled={confirming}
+                                variant="primary"
+                                className="[&>svg]:-rotate-90"
+                            />
+                        ) : (
+                            <AnimatedActionBtn
+                                icon={Check}
+                                label="Confirm import"
+                                onClick={handleConfirm}
+                                disabled={(selectedSectionId === 'none' && !pendingSectionCode) || confirming}
+                                isLoading={confirming}
+                                loadingLabel="Importing..."
+                                variant="primary"
+                            />
+                        )}
                     </>
                 )}
             </DialogFooter>

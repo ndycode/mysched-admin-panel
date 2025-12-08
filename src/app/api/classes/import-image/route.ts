@@ -108,36 +108,22 @@ function findClosestInstructorMatchInMemory(
 }
 
 async function lookupSectionByCode(code: string, fallbackId?: number | null): Promise<SectionLookupResult> {
-  const sb = sbService()
+  // NOTE: We intentionally do NOT return existing sections here.
+  // The app design requires separate sections per semester (same code can exist 
+  // in multiple semesters). The frontend will show "Create: [code]" option,
+  // and section creation will use the user-selected semester.
+
   const normalized = (normalizeSectionCode(code) ?? code).trim()
-  const { data, error } = await sb
-    .from('sections')
-    .select('id, code')
-    .ilike('code', normalized)
-    .maybeSingle()
-  if (error) {
-    throw createHttpError(500, 'section_lookup_failed', error)
-  }
-  if (data) {
-    return { section: { id: data.id, code: data.code }, message: null }
-  }
+
+  // If there's a fallback section ID explicitly provided, still use it
   if (fallbackId) {
     return lookupSectionById(fallbackId)
   }
 
-  const fuzzyMatch = await findClosestSectionMatch(sb, normalized)
-  if (fuzzyMatch) {
-    const matchedLabel = fuzzyMatch.code ?? `Section ${fuzzyMatch.id}`
-    return {
-      section: fuzzyMatch,
-      message: `Matched detected code "${normalized}" to the closest section "${matchedLabel}".`,
-    }
-  }
-
-  // Fallback if no match found
+  // Return null section to prompt user to create new or select existing
   return {
     section: null,
-    message: `No section matched the detected code "${normalized}". A new section will be created.`,
+    message: `Detected section "${normalized}". Select an existing section or create a new one for the target semester.`,
   }
 }
 

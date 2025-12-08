@@ -16,6 +16,7 @@ import { createHttpError } from '@/lib/http-error'
 
 const SectionSchema = z.object({
   code: z.string().trim().min(1, 'Code is required').max(40, 'Max 40 characters'),
+  semester_id: z.coerce.number().int().positive().optional(),
 }).strict()
 
 function json<T>(data: T, status = 200) {
@@ -136,19 +137,22 @@ export async function POST(
     const normalizedCode = input.code.trim().replace(/\s+/g, ' ').toUpperCase()
     const sb = sbService()
 
-    // Get active semester to auto-assign
-    const { data: activeSemester } = await sb
-      .from('semesters')
-      .select('id')
-      .eq('is_active', true)
-      .single()
+    // Use provided semester_id, or fall back to active semester
+    let finalSemesterId: number | null = input.semester_id ?? null
+    if (!finalSemesterId) {
+      const { data: activeSemester } = await sb
+        .from('semesters')
+        .select('id')
+        .eq('is_active', true)
+        .single()
+      finalSemesterId = activeSemester?.id ?? null
+    }
 
     const { data, error } = await sb
       .from('sections')
       .insert({
-        ...input,
         code: normalizedCode,
-        semester_id: activeSemester?.id ?? null,
+        semester_id: finalSemesterId,
       })
       .select()
       .single()

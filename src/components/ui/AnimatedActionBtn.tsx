@@ -10,7 +10,7 @@ import { HTMLMotionProps } from 'framer-motion'
 
 interface AnimatedActionBtnProps extends Omit<HTMLMotionProps<'button'>, 'children'> {
   icon?: any
-  label: string
+  label: React.ReactNode
   variant?: ButtonVariant | 'secondary'
   isLoading?: boolean
   loadingLabel?: string
@@ -88,7 +88,7 @@ export const AnimatedActionBtn = React.forwardRef<HTMLButtonElement, AnimatedAct
               </motion.div>
             ) : (
               <motion.div
-                key={label}
+                key="content"
                 initial={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                 exit={{ opacity: 0, y: 10, filter: 'blur(4px)' }}

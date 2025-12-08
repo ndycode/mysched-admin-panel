@@ -288,6 +288,13 @@ export default function ClassesPage() {
   const activeSemester = useMemo(() => semesters.find(s => s.is_active), [semesters])
   const instructors = useMemo(() => instructorsQuery.data ?? [], [instructorsQuery.data])
 
+  // Filter sections based on selected semester
+  const filteredSections = useMemo(() => {
+    if (semesterFilter === 'all') return sections
+    const semesterId = parseInt(semesterFilter, 10)
+    return sections.filter(s => s.semester_id === semesterId)
+  }, [sections, semesterFilter])
+
   // Merge semester data into classes rows from sections
   const rows = useMemo(() => {
     const rawRows = classesQuery.data?.rows ?? []
@@ -344,7 +351,12 @@ export default function ClassesPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, sectionId, dayFilter, instructorFilter])
+  }, [debouncedSearch, sectionId, dayFilter, instructorFilter, semesterFilter])
+
+  // Reset section filter when semester changes to avoid selecting a section not in the new semester
+  useEffect(() => {
+    setSectionId('all')
+  }, [semesterFilter])
 
   const pageRows = rows
 
@@ -744,7 +756,7 @@ export default function ClassesPage() {
                         label={
                           sectionId === 'all'
                             ? 'All Sections'
-                            : sections.find(s => String(s.id) === sectionId)?.code ||
+                            : filteredSections.find(s => String(s.id) === sectionId)?.code ||
                             `Section ${sectionId}`
                         }
                         icon={ChevronDown}
@@ -768,7 +780,7 @@ export default function ClassesPage() {
                           <DropdownMenuItem onClick={() => setSectionId('all')}>
                             All Sections
                           </DropdownMenuItem>
-                          {sections.map(section => (
+                          {filteredSections.map(section => (
                             <DropdownMenuItem
                               key={section.id}
                               onClick={() => setSectionId(String(section.id))}

@@ -827,6 +827,14 @@ export function ImportClassesDialog({
                                                 <span className="truncate max-w-64">
                                                     {files.length === 1 ? files[0].name : `${files.length} files selected`}
                                                 </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFiles([])}
+                                                    className="ml-1 p-1 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                                                    aria-label="Clear selected files"
+                                                >
+                                                    <X className="h-3.5 w-3.5" />
+                                                </button>
                                             </div>
                                         )}
                                     </div>

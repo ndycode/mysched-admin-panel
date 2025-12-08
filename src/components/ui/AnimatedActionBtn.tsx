@@ -9,7 +9,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { HTMLMotionProps } from 'framer-motion'
 
 interface AnimatedActionBtnProps extends Omit<HTMLMotionProps<'button'>, 'children'> {
-  icon?: any
+  icon?: React.ComponentType<{ className?: string }>
   label: React.ReactNode
   variant?: ButtonVariant | 'secondary'
   isLoading?: boolean

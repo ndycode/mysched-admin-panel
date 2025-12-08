@@ -34,6 +34,16 @@ export function VirtualizedAdminTable<T>({
     const showLoadingBanner = loading && data.length === 0
     const showErrorBanner = Boolean(error) && !loading && data.length === 0
 
+    const TableHeadComponent = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
+        (props, ref) => <thead {...props} ref={ref} className="bg-muted/50" />,
+    )
+    TableHeadComponent.displayName = 'VirtualizedTableHead'
+
+    const TableBodyComponent = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
+        (props, ref) => <tbody {...props} ref={ref} className="divide-y divide-border" />,
+    )
+    TableBodyComponent.displayName = 'VirtualizedTableBody'
+
     const components = useMemo(() => {
         return {
             Table: (props: React.TableHTMLAttributes<HTMLTableElement>) => (
@@ -42,12 +52,8 @@ export function VirtualizedAdminTable<T>({
                     className={`${minWidthClass} relative w-full divide-y divide-border text-sm text-foreground`}
                 />
             ),
-            TableHead: React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
-                (props, ref) => <thead {...props} ref={ref} className="bg-muted/50" />,
-            ),
-            TableBody: React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
-                (props, ref) => <tbody {...props} ref={ref} className="divide-y divide-border" />,
-            ),
+            TableHead: TableHeadComponent,
+            TableBody: TableBodyComponent,
             TableRow: (props: React.HTMLAttributes<HTMLTableRowElement>) => (
                 <tr
                     {...props}
@@ -55,7 +61,7 @@ export function VirtualizedAdminTable<T>({
                 />
             ),
         }
-    }, [minWidthClass])
+    }, [minWidthClass, TableHeadComponent, TableBodyComponent])
 
     return (
         <section className="space-y-3">

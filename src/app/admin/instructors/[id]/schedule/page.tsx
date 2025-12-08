@@ -176,16 +176,7 @@ export default function InstructorSchedulePage() {
   const unassignedClasses = unassignedQuery.data?.classes ?? []
   const refreshing = scheduleQuery.isFetching || unassignedQuery.isFetching
 
-  if (!instructorId) {
-    return (
-      <PageShell label="Schedule" title="Instructor Schedule" subtitle="Manage class assignments for instructors.">
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-          Instructor id is missing from the URL.
-        </div>
-      </PageShell>
-    )
-  }
-
+  // These must be called unconditionally (before any return)
   const assignedCount = assignedClasses.length
   const unassignedCount = unassignedClasses.length
   const [assignedPage, setAssignedPage] = useState(1)
@@ -215,6 +206,16 @@ export default function InstructorSchedulePage() {
   const assignPendingId = assignMutation.isPending ? assignMutation.variables?.classId : null
   const unassignPendingId = unassignMutation.isPending ? unassignMutation.variables?.classId : null
   const archivePendingId = archiveMutation.isPending ? archiveMutation.variables?.classId : null
+
+  if (!instructorId) {
+    return (
+      <PageShell label="Schedule" title="Instructor Schedule" subtitle="Manage class assignments for instructors.">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+          Instructor id is missing from the URL.
+        </div>
+      </PageShell>
+    )
+  }
 
   const headerActions = (
     <div className="flex items-center gap-3">

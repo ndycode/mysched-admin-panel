@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export function useFilterPersistence<T extends Record<string, any>>(
+export function useFilterPersistence<T extends Record<string, unknown>>(
     key: string,
     currentState: T,
     setters: { [K in keyof T]?: (value: T[K]) => void },

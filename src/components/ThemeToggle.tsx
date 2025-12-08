@@ -98,7 +98,6 @@ export function ThemeToggle({ className }: { className?: string }) {
             Math.max(y, innerHeight - y)
         )
 
-        // @ts-ignore
         if (!document.startViewTransition) {
             setTheme(isDark ? "light" : "dark")
             return
@@ -107,7 +106,6 @@ export function ThemeToggle({ className }: { className?: string }) {
         // Disable transitions to ensure the "new" snapshot captures the final state instantly
         document.documentElement.classList.add("disable-transitions")
 
-        // @ts-ignore
         const transition = document.startViewTransition(() => {
             flushSync(() => {
                 setTheme(isDark ? "light" : "dark")

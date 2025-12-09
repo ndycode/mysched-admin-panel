@@ -254,10 +254,8 @@ export function ImportClassesDialog({
                     console.warn('Failed to fetch fresh sections, using cached sections')
                 }
             }
-            for (let i = 0; i < files.length; i++) {
-                setAnalyzeProgress({ current: i + 1, total: files.length })
-
-                const currentFile = files[i]
+            // Process all images in parallel for faster scanning
+            const imagePromises = files.map(async (currentFile, i) => {
                 const resizedBlob = await resizeImage(currentFile)
                 const formData = new FormData()
                 formData.append('image', resizedBlob, currentFile.name)
@@ -273,7 +271,37 @@ export function ImportClassesDialog({
                 }
 
                 const data: ImportPreviewResponse = await res.json()
+                return { index: i, data }
+            })
 
+            // Track progress as images complete
+            let completedCount = 0
+            const trackProgress = <T,>(promise: Promise<T>): Promise<T> => {
+                return promise.finally(() => {
+                    completedCount++
+                    setAnalyzeProgress({ current: completedCount, total: files.length })
+                })
+            }
+
+            const results = await Promise.allSettled(imagePromises.map(trackProgress))
+
+            // Process results - collect successful ones and report failures
+            const errors: string[] = []
+            const successfulResults: { index: number; data: ImportPreviewResponse }[] = []
+
+            results.forEach((result, i) => {
+                if (result.status === 'fulfilled') {
+                    successfulResults.push(result.value)
+                } else {
+                    errors.push(result.reason?.message || `Image ${i + 1}: Analysis failed`)
+                }
+            })
+
+            // Sort by original index to maintain order
+            successfulResults.sort((a, b) => a.index - b.index)
+
+            // Process successful results
+            for (const { data } of successfulResults) {
                 // Auto-populate matched_instructor for detected instructors not in DB
                 // Normalize name for comparison: lowercase, remove punctuation, collapse spaces
                 const normalizeName = (name: string | null | undefined) =>
@@ -333,6 +361,13 @@ export function ImportClassesDialog({
                     sectionIds.push('none')
                     sectionCodes.push(null)
                 }
+            }
+
+            // If there were errors, show them but continue with successful ones
+            if (errors.length > 0 && successfulResults.length === 0) {
+                throw new Error(errors.join('\n'))
+            } else if (errors.length > 0) {
+                console.warn('[Import] Some images failed:', errors)
             }
 
             setAllPreviewData(previews)

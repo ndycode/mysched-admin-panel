@@ -252,8 +252,20 @@ export function ImportClassesDialog({
                     sectionIds.push(String(data.section.id))
                     sectionCodes.push(null)
                 } else if (data.detectedSectionCode) {
-                    sectionIds.push(`create:${data.detectedSectionCode}`)
-                    sectionCodes.push(data.detectedSectionCode)
+                    // Check if section with this code already exists in the current semester's sections
+                    const normalizedCode = data.detectedSectionCode.trim().toUpperCase()
+                    const existingSection = sections.find(
+                        s => s.code?.trim().toUpperCase() === normalizedCode
+                    )
+                    if (existingSection) {
+                        // Auto-select the existing section
+                        sectionIds.push(String(existingSection.id))
+                        sectionCodes.push(null)
+                    } else {
+                        // Offer to create a new section
+                        sectionIds.push(`create:${data.detectedSectionCode}`)
+                        sectionCodes.push(data.detectedSectionCode)
+                    }
                 } else {
                     sectionIds.push('none')
                     sectionCodes.push(null)

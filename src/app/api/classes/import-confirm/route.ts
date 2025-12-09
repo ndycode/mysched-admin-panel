@@ -186,9 +186,41 @@ export async function POST(req: NextRequest) {
       return json({ error: 'One or more rows are invalid.', issues }, 422)
     }
 
+    // Check for duplicates: fetch existing classes for this section
+    const { data: existingClasses } = await sb
+      .from('classes')
+      .select('code, day, start, "end"')
+      .eq('section_id', parsed.section_id)
+
+    const existingSet = new Set(
+      (existingClasses ?? []).map(c =>
+        `${c.code}|${c.day}|${c.start}|${c.end}`
+      )
+    )
+
+    // Filter out any classes that already exist
+    const newRows = rows.filter(row => {
+      const key = `${row.code}|${row.day}|${row.start}|${row.end}`
+      return !existingSet.has(key)
+    })
+
+    const skippedCount = rows.length - newRows.length
+    if (skippedCount > 0) {
+      console.log(`[Import] Skipped ${skippedCount} duplicate classes for section ${parsed.section_id}`)
+    }
+
+    if (newRows.length === 0) {
+      return json({
+        section_id: parsed.section_id,
+        count: 0,
+        rows: [],
+        message: `All ${rows.length} classes already exist in this section.`
+      })
+    }
+
     const { data, error } = await sb
       .from('classes')
-      .insert(rows)
+      .insert(newRows)
       .select('id, section_id, code, title, day, start, end, units, room')
 
     if (error) {

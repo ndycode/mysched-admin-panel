@@ -14,6 +14,7 @@ import {
   Plus,
   RefreshCw,
   Trash2,
+  X,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui'
@@ -38,6 +39,7 @@ import {
 } from '../_components/design-system'
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/Dialog'
 import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { formatDate } from '@/lib/date-utils'
 import { inputClasses } from '@/components/ui/Input'
 
@@ -93,6 +95,9 @@ export default function SemestersPage() {
   const [semesterToDelete, setSemesterToDelete] = useState<Semester | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
 
   const toast = useToast()
   const queryClient = useQueryClient()
@@ -214,6 +219,45 @@ export default function SemestersPage() {
       setIsDeleting(false)
     }
   }, [semesterToDelete, refresh, toast, showApiError])
+
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === paginatedSemesters.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(paginatedSemesters.map(s => s.id)))
+    }
+  }, [paginatedSemesters, selectedIds.size])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setIsBulkDeleting(true)
+    try {
+      for (const id of selectedIds) {
+        await api(`/api/semesters/${id}`, { method: 'DELETE' })
+      }
+      toast({ kind: 'success', msg: `Deleted ${selectedIds.size} semester(s)` })
+      setSelectedIds(new Set())
+      setBulkDeleteConfirmOpen(false)
+      refresh()
+    } catch {
+      toast({ kind: 'error', msg: 'Some deletions failed' })
+    } finally {
+      setIsBulkDeleting(false)
+    }
+  }, [selectedIds, toast, refresh])
 
   const headerActions = (
     <>
@@ -348,13 +392,35 @@ export default function SemestersPage() {
                 </div>
               </div>
             ) : null}
+
+            {/* Bulk actions toolbar */}
+            {selectedIds.size > 0 && (
+              <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3">
+                <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setBulkDeleteConfirmOpen(true)}
+                  disabled={isBulkDeleting}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete ({selectedIds.size})
+                </Button>
+                <div className="flex-1" />
+                <Button variant="ghost" size="sm" onClick={clearSelection}>
+                  <X className="mr-1 h-4 w-4" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+
             <AdminTable
               loading={isLoading}
               loadingLabel={null}
               error={semestersQuery.error ? (semestersQuery.error as Error).message : null}
               isEmpty={!isLoading && paginatedSemesters.length === 0}
               emptyMessage="No semesters found. Create your first semester to start organizing schedules."
-              colSpan={6}
+              colSpan={7}
               minWidthClass="min-w-[900px] table-fixed"
               pagination={
                 <div className="flex w-full flex-wrap items-center gap-3 sm:justify-between">
@@ -395,7 +461,14 @@ export default function SemestersPage() {
               }
               header={
                 <tr>
-                  <th scope="col" className="w-[280px] rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                  <th scope="col" className="w-12 rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                    <Checkbox
+                      checked={paginatedSemesters.length > 0 && selectedIds.size === paginatedSemesters.length}
+                      indeterminate={selectedIds.size > 0 && selectedIds.size < paginatedSemesters.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
+                  <th scope="col" className="w-[280px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     Semester
                   </th>
                   <th scope="col" className="w-[140px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
@@ -416,73 +489,83 @@ export default function SemestersPage() {
                 </tr>
               }
             >
-              {paginatedSemesters.map(row => (
-                <tr key={row.id} className="group transition-colors duration-200 hover:bg-muted/50 h-[52px]">
-                  <td className="w-[280px] px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                        <Calendar className="h-4 w-4" />
+              {paginatedSemesters.map(row => {
+                const isSelected = selectedIds.has(row.id)
+                return (
+                  <tr key={row.id} className={`group transition-colors duration-200 h-[52px] ${isSelected ? 'bg-primary/5' : 'hover:bg-muted/50'}`}>
+                    <td className="w-12 px-3 py-2.5 sm:px-4">
+                      <Checkbox
+                        checked={isSelected}
+                        onChange={() => toggleSelect(row.id)}
+                      />
+                    </td>
+                    <td className="w-[280px] px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                          <Calendar className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground">{row.name}</div>
+                          <div className="text-xs text-muted-foreground">{row.code}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-foreground">{row.name}</div>
-                        <div className="text-xs text-muted-foreground">{row.code}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-                    {row.term ? TERM_LABELS[row.term] : '—'}
-                  </td>
-                  <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-                    {row.academic_year || '—'}
-                  </td>
-                  <td className="w-56 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-                    {row.start_date && row.end_date
-                      ? `${formatDate(row.start_date)} – ${formatDate(row.end_date)}`
-                      : row.start_date
-                        ? `From ${formatDate(row.start_date)}`
-                        : '—'}
-                  </td>
-                  <td className="w-32 whitespace-nowrap px-3 py-2.5 sm:px-4">
-                    {row.is_active ? (
-                      <StatusPill tone="success">Active</StatusPill>
-                    ) : (
-                      <StatusPill tone="info">Inactive</StatusPill>
-                    )}
-                  </td>
-                  <td
-                    className="sticky right-0 px-3 py-2.5 text-right sm:px-4 border-l border-border w-16 bg-background dark:bg-black group-hover:bg-muted/50 transition-colors duration-200"
-                    style={{ backgroundColor: 'var(--background)' }}
-                  >
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <ActionMenuTrigger ariaLabel="Semester actions" icon={MoreVertical} size="sm" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
-                        {!row.is_active && (
-                          <DropdownMenuItem onClick={() => handleSetActive(row)}>
-                            <Check className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-                            Set as Active
+                    </td>
+                    <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
+                      {row.term ? TERM_LABELS[row.term] : '—'}
+                    </td>
+                    <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
+                      {row.academic_year || '—'}
+                    </td>
+                    <td className="w-56 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
+                      {row.start_date && row.end_date
+                        ? `${formatDate(row.start_date)} – ${formatDate(row.end_date)}`
+                        : row.start_date
+                          ? `From ${formatDate(row.start_date)}`
+                          : '—'}
+                    </td>
+                    <td className="w-32 whitespace-nowrap px-3 py-2.5 sm:px-4">
+                      {row.is_active ? (
+                        <StatusPill tone="success">Active</StatusPill>
+                      ) : (
+                        <StatusPill tone="info">Inactive</StatusPill>
+                      )}
+                    </td>
+                    <td
+                      className="sticky right-0 px-3 py-2.5 text-right sm:px-4 border-l border-border w-16 bg-background dark:bg-black group-hover:bg-muted/50 transition-colors duration-200"
+                      style={{ backgroundColor: 'var(--background)' }}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <ActionMenuTrigger ariaLabel="Semester actions" icon={MoreVertical} size="sm" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          {!row.is_active && (
+                            <DropdownMenuItem onClick={() => handleSetActive(row)}>
+                              <Check className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                              Set as Active
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => setEditing(row)}>
+                            <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                            Edit
                           </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => setEditing(row)}>
-                          <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                          onClick={() => setSemesterToDelete(row)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" aria-hidden />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
+                          <DropdownMenuItem
+                            className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                            onClick={() => setSemesterToDelete(row)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" aria-hidden />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                )
+              })}
               {/* Spacer rows to maintain consistent height */}
               {!isLoading && Array.from({ length: Math.max(0, pageSize - paginatedSemesters.length) }).map((_, index) => (
                 <tr key={`spacer-${index}`} aria-hidden="true" className="h-[52px]">
+                  <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
@@ -516,6 +599,14 @@ export default function SemestersPage() {
           isDeleting={isDeleting}
           title="Delete Semester"
           description={`Are you sure you want to delete "${semesterToDelete?.name}"? This action cannot be undone.`}
+        />
+        <DeleteConfirmationDialog
+          open={bulkDeleteConfirmOpen}
+          onOpenChange={setBulkDeleteConfirmOpen}
+          title="Delete Selected Semesters"
+          description={`Are you sure you want to delete ${selectedIds.size} semester(s)? This action cannot be undone.`}
+          onConfirm={() => void handleBulkDelete()}
+          isDeleting={isBulkDeleting}
         />
       </div>
     </div>

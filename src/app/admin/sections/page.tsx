@@ -688,68 +688,77 @@ export default function SectionsPage() {
 
 
   const renderRow = useCallback(
-    (row: SectionRow) => (
-      <tr key={row.key} className="group transition-colors duration-200 hover:bg-muted/50 h-13">
-        <td className="px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
-          <div className="w-full truncate" title={row.sectionNumber ?? undefined}>
-            {row.sectionNumber ?? '-'}
-          </div>
-        </td>
-        <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">{row.code ?? '-'}</td>
-        <td className="whitespace-nowrap px-3 py-2.5 text-sm sm:px-4">
-          {row.semesterName ? (
-            <span className="flex items-center gap-1.5">
-              <span className="text-foreground">{row.semesterName}</span>
-              {row.semesterIsActive && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
-            </span>
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          )}
-        </td>
-        <td className="whitespace-nowrap px-3 py-2.5 text-sm text-foreground sm:px-4">
-          <Badge className="font-medium">
-            {row.classCount} classes
-          </Badge>
-        </td>
-        <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-          {row.createdAt ? formatDate(row.createdAt) : '—'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-          {row.updatedAt ? formatDate(row.updatedAt) : '—'}
-        </td>
-        <td
-          className="sticky right-0 px-3 py-2.5 text-right sm:px-4 border-l border-border w-16 bg-background dark:bg-black group-hover:bg-muted/50 transition-colors duration-200"
-          style={{ backgroundColor: 'var(--background)' }}
-        >
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <ActionMenuTrigger ariaLabel="Section actions" icon={MoreVertical} size="sm" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={() => setViewingSection(row)}>
-                <Eye className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-                View details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setEditingSection(row)}>
-                <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                onClick={() => {
-                  if (row.id != null) handleDelete(row.id)
-                }}
-                disabled={row.id === null}
-              >
-                <Trash2 className="mr-2 h-4 w-4" aria-hidden />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </td>
-      </tr>
-    ),
-    [handleDelete],
+    (row: SectionRow) => {
+      const isSelected = row.id !== null && selectedIds.has(row.id)
+      return (
+        <tr key={row.key} className={`group transition-colors duration-200 h-13 ${isSelected ? 'bg-primary/5' : 'hover:bg-muted/50'}`}>
+          <td className="w-12 px-3 py-2.5 sm:px-4">
+            <Checkbox
+              checked={isSelected}
+              onChange={() => row.id !== null && toggleSelect(row.id)}
+            />
+          </td>
+          <td className="px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
+            <div className="w-full truncate" title={row.sectionNumber ?? undefined}>
+              {row.sectionNumber ?? '-'}
+            </div>
+          </td>
+          <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">{row.code ?? '-'}</td>
+          <td className="whitespace-nowrap px-3 py-2.5 text-sm sm:px-4">
+            {row.semesterName ? (
+              <span className="flex items-center gap-1.5">
+                <span className="text-foreground">{row.semesterName}</span>
+                {row.semesterIsActive && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
+          </td>
+          <td className="whitespace-nowrap px-3 py-2.5 text-sm text-foreground sm:px-4">
+            <Badge className="font-medium">
+              {row.classCount} classes
+            </Badge>
+          </td>
+          <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
+            {row.createdAt ? formatDate(row.createdAt) : '—'}
+          </td>
+          <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
+            {row.updatedAt ? formatDate(row.updatedAt) : '—'}
+          </td>
+          <td
+            className="sticky right-0 px-3 py-2.5 text-right sm:px-4 border-l border-border w-16 bg-background dark:bg-black group-hover:bg-muted/50 transition-colors duration-200"
+            style={{ backgroundColor: 'var(--background)' }}
+          >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <ActionMenuTrigger ariaLabel="Section actions" icon={MoreVertical} size="sm" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={() => setViewingSection(row)}>
+                  <Eye className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                  View details
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEditingSection(row)}>
+                  <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  onClick={() => {
+                    if (row.id != null) handleDelete(row.id)
+                  }}
+                  disabled={row.id === null}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" aria-hidden />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </td>
+        </tr>
+      )
+    },
+    [handleDelete, selectedIds, toggleSelect],
   )
 
   const headerActions = (
@@ -974,13 +983,35 @@ export default function SectionsPage() {
                 </div>
               </div>
             ) : null}
+
+            {/* Bulk actions toolbar */}
+            {selectedIds.size > 0 && (
+              <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3">
+                <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setBulkDeleteConfirmOpen(true)}
+                  disabled={isBulkDeleting}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete ({selectedIds.size})
+                </Button>
+                <div className="flex-1" />
+                <Button variant="ghost" size="sm" onClick={clearSelection}>
+                  <X className="mr-1 h-4 w-4" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+
             <AdminTable
               loading={tableLoading}
               loadingLabel={null}
               error={sectionErrorMessage}
               isEmpty={!tableLoading && paginatedSections.length === 0}
               emptyMessage="No sections found matching your filters."
-              colSpan={7}
+              colSpan={8}
               minWidthClass="min-w-[1200px] table-fixed"
               pagination={
                 <div className="flex w-full flex-wrap items-center gap-3 sm:justify-between">
@@ -1021,7 +1052,14 @@ export default function SectionsPage() {
               }
               header={
                 <tr>
-                  <th className="w-[280px] rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                  <th scope="col" className="w-12 rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                    <Checkbox
+                      checked={paginatedSections.length > 0 && selectedIds.size === paginatedSections.length}
+                      indeterminate={selectedIds.size > 0 && selectedIds.size < paginatedSections.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
+                  <th className="w-[280px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     <SortableTableHeader sortKey="section" label="Section" currentSort={sort} sortDirection={sortDirection} userSorted={userSorted} onSortChange={handleSortChange} />
                   </th>
                   <th className="w-[140px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
@@ -1054,6 +1092,7 @@ export default function SectionsPage() {
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
+                  <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4 border-l border-transparent">&nbsp;</td>
                 </tr>
               ))}
@@ -1061,6 +1100,15 @@ export default function SectionsPage() {
           </div>
         </div >
       </div >
+
+      <DeleteConfirmationDialog
+        open={bulkDeleteConfirmOpen}
+        onOpenChange={setBulkDeleteConfirmOpen}
+        title="Delete Selected Sections"
+        description={`Are you sure you want to delete ${selectedIds.size} section(s)? This action cannot be undone.`}
+        onConfirm={() => void handleBulkDelete()}
+        isDeleting={isBulkDeleting}
+      />
     </div >
   )
 }

@@ -375,22 +375,43 @@ export function ImportClassesDialog({
 
         let totalImported = 0
 
+        // Track instructors created across ALL images to avoid duplicate creation
+        const createdInstructorsMap = new Map<string, string>()
+        // Track sections created across ALL images to avoid duplicate creation
+        const createdSectionsMap = new Map<string, number>()
+
         try {
             // Process each image's preview data
             for (let idx = 0; idx < allPreviewData.length; idx++) {
                 const preview = allPreviewData[idx]
                 let finalSectionId = selectedSectionIds[idx] ?? 'none'
 
+                console.log(`[Import] Processing Image ${idx + 1}/${allPreviewData.length}`)
+                console.log(`[Import] Section selection: "${finalSectionId}"`)
+
                 // If we have a pending section code, create it first
                 if (finalSectionId.startsWith('create:')) {
                     const code = finalSectionId.replace('create:', '')
-                    try {
-                        const newSection = await createSection(code)
-                        setSections(prev => [...prev, newSection])
-                        finalSectionId = String(newSection.id)
-                    } catch (error) {
-                        const { message } = normalizeApiError(error, 'Failed to create section')
-                        throw new Error(`Image ${idx + 1}: ${message}`)
+                    const normalizedCode = code.trim().replace(/\s+/g, ' ').toUpperCase()
+
+                    // Check if we already created this section in a previous image
+                    const existingCreatedId = createdSectionsMap.get(normalizedCode)
+                    if (existingCreatedId) {
+                        console.log(`[Import] Reusing section "${code}" from previous image (id: ${existingCreatedId})`)
+                        finalSectionId = String(existingCreatedId)
+                    } else {
+                        try {
+                            console.log(`[Import] Creating section: "${code}"`)
+                            const newSection = await createSection(code)
+                            console.log(`[Import] Created section "${code}" with id: ${newSection.id}`)
+                            setSections(prev => [...prev, newSection])
+                            createdSectionsMap.set(normalizedCode, newSection.id)
+                            finalSectionId = String(newSection.id)
+                        } catch (error) {
+                            console.error(`[Import] Failed to create section:`, error)
+                            const { message } = normalizeApiError(error, 'Failed to create section')
+                            throw new Error(`Image ${idx + 1}: ${message}`)
+                        }
                     }
                 }
 
@@ -399,19 +420,28 @@ export function ImportClassesDialog({
                 preview.rows.forEach((row: SchedulePreviewRow) => {
                     const instructorValue = row.matched_instructor?.id
                     if (instructorValue && instructorValue.startsWith('create:')) {
-                        pendingInstructorNames.add(instructorValue.replace('create:', ''))
+                        const name = instructorValue.replace('create:', '')
+                        // Only add if not already created in a previous image
+                        if (!createdInstructorsMap.has(name)) {
+                            pendingInstructorNames.add(name)
+                        } else {
+                            console.log(`[Import] Reusing instructor "${name}" from previous image (id: ${createdInstructorsMap.get(name)})`)
+                        }
                     }
                 })
 
-                const createdInstructorsMap = new Map<string, string>()
+                console.log(`[Import] Image ${idx + 1}: ${pendingInstructorNames.size} new instructors to create:`, [...pendingInstructorNames])
 
                 if (pendingInstructorNames.size > 0) {
                     try {
                         for (const name of pendingInstructorNames) {
+                            console.log(`[Import] Creating instructor: "${name}"`)
                             const newInstructor = await createInstructor(name)
+                            console.log(`[Import] Created instructor "${name}" with id: ${newInstructor.id}`)
                             createdInstructorsMap.set(name, newInstructor.id)
                         }
                     } catch (error) {
+                        console.error(`[Import] Failed to create instructor:`, error)
                         const { message } = normalizeApiError(error, 'Failed to create instructor')
                         throw new Error(`Image ${idx + 1}: ${message}`)
                     }

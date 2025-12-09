@@ -350,6 +350,17 @@ export function ImportClassesDialog({
 
     const createSection = async (code: string): Promise<Section> => {
         const normalizedCode = code.trim().replace(/\s+/g, ' ').toUpperCase()
+
+        // First check if section with this code already exists
+        const existingSection = sections.find(
+            s => (s.code ?? '').trim().replace(/\s+/g, ' ').toUpperCase() === normalizedCode
+        )
+        if (existingSection) {
+            console.log(`[Import] Section "${normalizedCode}" already exists with id: ${existingSection.id}`)
+            return existingSection
+        }
+
+        // Create new section if not found
         const res = await api('/api/sections', {
             method: 'POST',
             body: JSON.stringify({

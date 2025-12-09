@@ -279,9 +279,13 @@ export function ImportClassesDialog({
                     sectionCodes.push(null)
                 } else if (data.detectedSectionCode) {
                     // Check if section with this code already exists in the current semester's sections
-                    const normalizedCode = data.detectedSectionCode.trim().toUpperCase()
+                    // Normalize: trim, collapse spaces, uppercase
+                    const normalizeCode = (code: string | null | undefined) =>
+                        (code ?? '').trim().replace(/\s+/g, ' ').toUpperCase()
+
+                    const normalizedCode = normalizeCode(data.detectedSectionCode)
                     const existingSection = currentSections.find(
-                        s => s.code?.trim().toUpperCase() === normalizedCode
+                        s => normalizeCode(s.code) === normalizedCode
                     )
                     if (existingSection) {
                         // Auto-select the existing section
@@ -326,10 +330,36 @@ export function ImportClassesDialog({
 
 
     const createInstructor = async (name: string): Promise<InstructorSummary> => {
+        const trimmedName = name.trim()
+
+        // First, check if an instructor with this name already exists
+        const existingInstructor = instructors.find(
+            inst => inst.full_name.toLowerCase() === trimmedName.toLowerCase()
+        )
+        if (existingInstructor) {
+            return { id: existingInstructor.id, full_name: existingInstructor.full_name }
+        }
+
+        // Also search the API in case our local list is stale
+        try {
+            const searchResult = await api<{ rows: Array<{ id: string; full_name: string }> }>(
+                `/api/instructors?search=${encodeURIComponent(trimmedName)}&limit=5`
+            )
+            const exactMatch = searchResult.rows.find(
+                inst => inst.full_name.toLowerCase() === trimmedName.toLowerCase()
+            )
+            if (exactMatch) {
+                return { id: exactMatch.id, full_name: exactMatch.full_name }
+            }
+        } catch {
+            // Ignore search errors, proceed to create
+        }
+
+        // Create new instructor
         const res = await api('/api/instructors', {
             method: 'POST',
             body: JSON.stringify({
-                full_name: name.trim(),
+                full_name: trimmedName,
             }),
         })
         // The API returns the full instructor object, we just need the summary

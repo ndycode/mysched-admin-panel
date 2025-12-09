@@ -1,13 +1,14 @@
 'use client'
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
 import { RotateCcw, Save } from 'lucide-react'
 import { useToast } from '@/components/toast'
 import { PageShell, CardSurface, SectionHeader } from '../_components/design-system'
+import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog'
 
 import { RECOMMENDATION_TARGETS } from './constants'
 import { AnalyticsConfigureDialog } from './components/AnalyticsConfigureDialog'
@@ -49,6 +50,9 @@ export default function SettingsPage() {
     save,
     handleRecommendationDismiss,
   } = useAdminSettings()
+
+  const [rotateKeysConfirmOpen, setRotateKeysConfirmOpen] = useState(false)
+  const [isRotatingKeys, setIsRotatingKeys] = useState(false)
 
   const snapshotItems = useMemo<SnapshotItem[]>(() => {
     if (!settings) return []
@@ -117,17 +121,15 @@ export default function SettingsPage() {
     return [maintenance, twoFactor, supabaseSnapshot]
   }, [settings])
 
-  const handleRotateKeys = () => {
+  const handleRotateKeys = async () => {
     if (!settings) return
-    if (
-      typeof window !== 'undefined' &&
-      !window.confirm(
-        'Record a new Supabase key rotation? Existing credentials will be marked as needing verification.',
-      )
-    ) {
-      return
+    setIsRotatingKeys(true)
+    try {
+      await recordSupabaseRotation()
+    } finally {
+      setIsRotatingKeys(false)
+      setRotateKeysConfirmOpen(false)
     }
-    void recordSupabaseRotation()
   }
 
   const handleRecommendation = (rec: Recommendation) => {
@@ -253,7 +255,7 @@ export default function SettingsPage() {
                     supabaseTest={supabaseTest}
                     onSupabaseProjectRefChange={updateSupabaseProjectRef}
                     onTestSupabase={() => void testSupabase()}
-                    onRotateKeys={handleRotateKeys}
+                    onRotateKeys={() => setRotateKeysConfirmOpen(true)}
                     onWebhookEndpointChange={updateWebhookEndpoint}
                     onWebhookPing={pingWebhook}
                     onAnalyticsProviderChange={updateAnalyticsProvider}
@@ -290,6 +292,16 @@ export default function SettingsPage() {
             destination={settings?.integrations.analytics.destination ?? null}
             onSubmit={submitAnalyticsConfig}
             onClose={() => setAnalyticsDialogOpen(false)}
+          />
+
+          {/* Rotate Keys Confirmation Dialog */}
+          <DeleteConfirmationDialog
+            open={rotateKeysConfirmOpen}
+            onOpenChange={setRotateKeysConfirmOpen}
+            title="Rotate Supabase Keys"
+            description="Record a new Supabase key rotation? Existing credentials will be marked as needing verification."
+            onConfirm={() => void handleRotateKeys()}
+            isDeleting={isRotatingKeys}
           />
         </div>
       </div>

@@ -19,7 +19,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         const isChecked = checked || indeterminate
 
         return (
-            <label className={cn('relative inline-flex items-center cursor-pointer', disabled && 'cursor-not-allowed opacity-60')}>
+            <label className={cn('relative inline-flex items-center cursor-pointer p-2 -m-2', disabled && 'cursor-not-allowed opacity-60')}>
                 {/* Hidden native input for accessibility */}
                 <input
                     ref={ref}

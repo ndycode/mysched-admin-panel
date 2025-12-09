@@ -455,7 +455,7 @@ export default function SectionsPage() {
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
 
   const sectionsQuery = useQuery({
-    queryKey: ['sections', 'table', sort, sortDirection, search, instructorFilter],
+    queryKey: ['sections', 'table', sort, sortDirection, search, instructorFilter, semesterFilter],
     queryFn: async () => {
       const params = new URLSearchParams()
       if (instructorFilter !== 'all') params.set('instructor_id', instructorFilter)

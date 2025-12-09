@@ -48,19 +48,34 @@ export async function GET(request: NextRequest) {
             : { data: [] }
         const classesMap = new Map((classesData ?? []).map(c => [c.id, c]))
 
-        const mapped = rows.map(row => ({
-            id: row.id,
-            userId: row.user_id,
-            classId: row.class_id,
-            sectionId: row.section_id,
-            note: row.note,
-            snapshot: row.snapshot,
-            status: row.status,
-            createdAt: row.created_at,
-            resolutionNote: row.resolution_note,
-            reporter: null, // Skip profile lookup for now (no FK relationship)
-            classInfo: classesMap.get(row.class_id) ?? null,
-        }))
+        // Fetch profile info for each reporter
+        const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))]
+        const { data: profilesData } = userIds.length > 0
+            ? await sb.from('profiles').select('id, full_name, email, avatar_url').in('id', userIds)
+            : { data: [] }
+        const profilesMap = new Map((profilesData ?? []).map(p => [p.id, p]))
+
+        const mapped = rows.map(row => {
+            const profile = profilesMap.get(row.user_id)
+            const classInfo = classesMap.get(row.class_id)
+            return {
+                id: row.id,
+                userId: row.user_id,
+                classId: row.class_id,
+                sectionId: row.section_id,
+                note: row.note,
+                snapshot: row.snapshot,
+                status: row.status,
+                createdAt: row.created_at,
+                resolutionNote: row.resolution_note,
+                reporter: profile ? {
+                    name: profile.full_name,
+                    email: profile.email,
+                    avatarUrl: profile.avatar_url,
+                } : null,
+                classInfo: classInfo ?? null,
+            }
+        })
 
         return NextResponse.json(mapped)
     } catch (err) {

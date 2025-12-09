@@ -315,8 +315,8 @@ export function ImportClassesDialog({
                     // Apply defaults for missing values so they show in preview
                     let updatedRow = {
                         ...row,
-                        // Default units to 1 if not detected
-                        units: row.units != null ? row.units : 1,
+                        // Default units to 1 if not detected, round up decimals
+                        units: row.units != null ? Math.ceil(Number(row.units)) : 1,
                     }
 
                     if (updatedRow.instructor_name && !updatedRow.matched_instructor) {
@@ -591,9 +591,9 @@ export function ImportClassesDialog({
                             instructorId = createdInstructorsMap.get(name) ?? null
                         }
 
-                        // Parse units - default to 1 if not a valid number
+                        // Parse units - default to 1 if not a valid number, round up decimals
                         const rawUnits = row.units
-                        const unitsValue = (rawUnits != null && !isNaN(Number(rawUnits))) ? Number(rawUnits) : 1
+                        const unitsValue = (rawUnits != null && !isNaN(Number(rawUnits))) ? Math.ceil(Number(rawUnits)) : 1
 
                         return {
                             day: row.day || 'M',  // Default to Monday if missing

@@ -251,10 +251,19 @@ export function ImportClassesDialog({
                 const data: ImportPreviewResponse = await res.json()
 
                 // Auto-populate matched_instructor for detected instructors not in DB
+                // Normalize name for comparison: lowercase, remove punctuation, collapse spaces
+                const normalizeName = (name: string | null | undefined) =>
+                    (name ?? '')
+                        .toLowerCase()
+                        .replace(/[.,\-_]/g, ' ')  // Replace punctuation with space
+                        .replace(/\s+/g, ' ')      // Collapse multiple spaces
+                        .trim()
+
                 const processedRows = data.rows.map((row: SchedulePreviewRow) => {
                     if (row.instructor_name && !row.matched_instructor) {
+                        const normalizedRowName = normalizeName(row.instructor_name)
                         const existingInstructor = instructors.find(
-                            inst => inst.full_name.toLowerCase() === row.instructor_name?.toLowerCase()
+                            inst => normalizeName(inst.full_name) === normalizedRowName
                         )
                         if (existingInstructor) {
                             return { ...row, matched_instructor: existingInstructor }
@@ -332,23 +341,34 @@ export function ImportClassesDialog({
     const createInstructor = async (name: string): Promise<InstructorSummary> => {
         const trimmedName = name.trim()
 
+        // Normalize name for comparison: lowercase, remove punctuation, collapse spaces
+        const normalizeName = (n: string) =>
+            n.toLowerCase()
+                .replace(/[.,\-_]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+
+        const normalizedSearch = normalizeName(trimmedName)
+
         // First, check if an instructor with this name already exists
         const existingInstructor = instructors.find(
-            inst => inst.full_name.toLowerCase() === trimmedName.toLowerCase()
+            inst => normalizeName(inst.full_name) === normalizedSearch
         )
         if (existingInstructor) {
+            console.log(`[Import] Found existing instructor in local list: "${existingInstructor.full_name}" (id: ${existingInstructor.id})`)
             return { id: existingInstructor.id, full_name: existingInstructor.full_name }
         }
 
         // Also search the API in case our local list is stale
         try {
             const searchResult = await api<{ rows: Array<{ id: string; full_name: string }> }>(
-                `/api/instructors?search=${encodeURIComponent(trimmedName)}&limit=5`
+                `/api/instructors?search=${encodeURIComponent(trimmedName)}&limit=10`
             )
             const exactMatch = searchResult.rows.find(
-                inst => inst.full_name.toLowerCase() === trimmedName.toLowerCase()
+                inst => normalizeName(inst.full_name) === normalizedSearch
             )
             if (exactMatch) {
+                console.log(`[Import] Found existing instructor via API: "${exactMatch.full_name}" (id: ${exactMatch.id})`)
                 return { id: exactMatch.id, full_name: exactMatch.full_name }
             }
         } catch {
@@ -356,6 +376,7 @@ export function ImportClassesDialog({
         }
 
         // Create new instructor
+        console.log(`[Import] No match found, creating new instructor: "${trimmedName}"`)
         const res = await api('/api/instructors', {
             method: 'POST',
             body: JSON.stringify({

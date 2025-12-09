@@ -549,14 +549,18 @@ export function ImportClassesDialog({
                             instructorId = createdInstructorsMap.get(name) ?? null
                         }
 
+                        // Parse units - default to 0 if not a valid number
+                        const rawUnits = row.units
+                        const unitsValue = (rawUnits != null && !isNaN(Number(rawUnits))) ? Number(rawUnits) : 0
+
                         return {
                             day: row.day || 'M',  // Default to Monday if missing
                             start: row.start || '08:00',  // Default to 8 AM
                             end: row.end || '09:00',  // Default to 9 AM
-                            code: row.code || 'UNKNOWN',
-                            title: row.title || 'Unknown Class',
-                            units: row.units ?? 0,  // Default to 0 units if null
-                            room: row.room || null,  // Allow null for room
+                            code: row.code?.trim() || 'UNKNOWN',
+                            title: row.title?.trim() || 'Unknown Class',
+                            units: unitsValue,  // Default to 0 if not detected
+                            room: row.room?.trim() || null,  // Allow null for room
                             instructor_id: instructorId,
                         }
                     })

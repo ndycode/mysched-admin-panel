@@ -13,20 +13,6 @@ type IssueReportRow = {
     status: string
     created_at: string
     resolution_note: string | null
-    profiles: {
-        full_name: string | null
-        email: string | null
-        avatar_url: string | null
-    } | null
-    classes: {
-        id: number
-        title: string | null
-        code: string | null
-        room: string | null
-        day: string | null
-        start: string | null
-        end: string | null
-    } | null
 }
 
 export async function GET(request: NextRequest) {
@@ -38,31 +24,7 @@ export async function GET(request: NextRequest) {
         const sb = sbService()
         let query = sb
             .from('class_issue_reports')
-            .select(`
-        id,
-        user_id,
-        class_id,
-        section_id,
-        note,
-        snapshot,
-        status,
-        created_at,
-        resolution_note,
-        profiles:user_id (
-          full_name,
-          email,
-          avatar_url
-        ),
-        classes:class_id (
-          id,
-          title,
-          code,
-          room,
-          day,
-          start,
-          end
-        )
-      `)
+            .select('*')
             .order('created_at', { ascending: false })
             .limit(limit)
 
@@ -77,7 +39,14 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: error.message }, { status: 500 })
         }
 
-        const rows = (data as unknown as IssueReportRow[]) ?? []
+        const rows = (data as IssueReportRow[]) ?? []
+
+        // Fetch class info for each report
+        const classIds = [...new Set(rows.map(r => r.class_id).filter(Boolean))]
+        const { data: classesData } = classIds.length > 0
+            ? await sb.from('classes').select('id, title, code, room, day, start, end').in('id', classIds)
+            : { data: [] }
+        const classesMap = new Map((classesData ?? []).map(c => [c.id, c]))
 
         const mapped = rows.map(row => ({
             id: row.id,
@@ -89,20 +58,8 @@ export async function GET(request: NextRequest) {
             status: row.status,
             createdAt: row.created_at,
             resolutionNote: row.resolution_note,
-            reporter: row.profiles ? {
-                name: row.profiles.full_name,
-                email: row.profiles.email,
-                avatarUrl: row.profiles.avatar_url,
-            } : null,
-            classInfo: row.classes ? {
-                id: row.classes.id,
-                title: row.classes.title,
-                code: row.classes.code,
-                room: row.classes.room,
-                day: row.classes.day,
-                start: row.classes.start,
-                end: row.classes.end,
-            } : null,
+            reporter: null, // Skip profile lookup for now (no FK relationship)
+            classInfo: classesMap.get(row.class_id) ?? null,
         }))
 
         return NextResponse.json(mapped)

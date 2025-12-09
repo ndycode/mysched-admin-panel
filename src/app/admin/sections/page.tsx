@@ -439,6 +439,7 @@ export default function SectionsPage() {
   const [sort, setSort] = useState<SectionSortKey>('section')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [instructorFilter, setInstructorFilter] = useState<'all' | string>('all')
+  const [semesterFilter, setSemesterFilter] = useState<'all' | string>('all')
   const [userSorted, setUserSorted] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -458,6 +459,7 @@ export default function SectionsPage() {
     queryFn: async () => {
       const params = new URLSearchParams()
       if (instructorFilter !== 'all') params.set('instructor_id', instructorFilter)
+      if (semesterFilter !== 'all') params.set('semester_id', semesterFilter)
       const url = params.toString() ? `/api/sections?${params.toString()}` : '/api/sections'
       const rows = await api<SectionApiRow[]>(url)
       return rows.map(mapSectionRow)
@@ -475,8 +477,17 @@ export default function SectionsPage() {
     },
     staleTime: 5 * 60 * 1000,
   })
+  const semestersQuery = useQuery({
+    queryKey: ['semesters', 'options'],
+    queryFn: async () => {
+      const response = await api<Array<{ id: number; code: string; name: string; is_active: boolean }>>('/api/semesters')
+      return response ?? []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
   const sections = useMemo(() => sectionsQuery.data ?? [], [sectionsQuery.data])
   const instructors = useMemo(() => instructorsQuery.data ?? [], [instructorsQuery.data])
+  const semesters = useMemo(() => semestersQuery.data ?? [], [semestersQuery.data])
   const isLoading = sectionsQuery.isLoading
   const isFetching = sectionsQuery.isFetching
   const sectionsRefreshing = isFetching
@@ -491,12 +502,13 @@ export default function SectionsPage() {
   }, [])
   useFilterPersistence(
     'admin_sections_filters',
-    { search, sort, sortDirection, instructorFilter },
+    { search, sort, sortDirection, instructorFilter, semesterFilter },
     {
       search: setSearch,
       sort: setSort,
       sortDirection: setSortDirection,
       instructorFilter: (val) => setInstructorFilter(val as 'all' | string),
+      semesterFilter: (val) => setSemesterFilter(val as 'all' | string),
     },
     (saved) => {
       const isNonDefaultSort = saved.sort && saved.sort !== 'section'
@@ -517,7 +529,7 @@ export default function SectionsPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1)
-  }, [search, sort, sortDirection, instructorFilter])
+  }, [search, sort, sortDirection, instructorFilter, semesterFilter])
 
   useEffect(() => {
     if (!sectionsQuery.error) return
@@ -944,6 +956,49 @@ export default function SectionsPage() {
                           {instructors.map(instructor => (
                             <DropdownMenuItem key={instructor.id} onClick={() => setInstructorFilter(instructor.id)}>
                               {instructor.full_name}
+                            </DropdownMenuItem>
+                          ))}
+                        </LenisWrapper>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Semester Filter */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <AnimatedActionBtn
+                        label={
+                          semesterFilter === 'all'
+                            ? 'All Semesters'
+                            : semesters.find(s => String(s.id) === semesterFilter)?.name ?? 'Semester'
+                        }
+                        icon={ChevronDown}
+                        variant="secondary"
+                        className="justify-between gap-2 px-4"
+                        aria-label="Choose semester filter"
+                        disabled={semestersQuery.isFetching}
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56 p-0">
+                      <div className="relative">
+                        {semestersQuery.isFetching ? (
+                          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Spinner className="h-4 w-4" />
+                              Loading semesters...
+                            </div>
+                          </div>
+                        ) : null}
+                        <LenisWrapper root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-72 overflow-y-auto p-1">
+                          <DropdownMenuItem onClick={() => setSemesterFilter('all')}>
+                            All Semesters
+                          </DropdownMenuItem>
+                          {semesters.map(semester => (
+                            <DropdownMenuItem key={semester.id} onClick={() => setSemesterFilter(String(semester.id))}>
+                              <span className="flex items-center gap-2">
+                                {semester.name}
+                                {semester.is_active && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
+                              </span>
                             </DropdownMenuItem>
                           ))}
                         </LenisWrapper>

@@ -295,6 +295,27 @@ export default function ClassesPage() {
     return sections.filter(s => s.semester_id === semesterId)
   }, [sections, semesterFilter])
 
+  // Group sections by course prefix (e.g., ACT, BAC FE DM, BSCRIM)
+  const groupedSections = useMemo(() => {
+    const groups = new Map<string, Section[]>()
+
+    for (const section of filteredSections) {
+      // Parse section code like "ACT 1-1" into course="ACT" and year-section="1-1"
+      const match = section.code?.match(/^(.+?)\s+(\d+-\d+)$/)
+      const course = match ? match[1].trim() : 'Other'
+      if (!groups.has(course)) groups.set(course, [])
+      groups.get(course)!.push(section)
+    }
+
+    // Sort groups alphabetically, sort sections within each group
+    return Array.from(groups.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([course, secs]) => ({
+        course,
+        sections: secs.sort((a, b) => (a.code ?? '').localeCompare(b.code ?? ''))
+      }))
+  }, [filteredSections])
+
   // Merge semester data into classes rows from sections
   const rows = useMemo(() => {
     const rawRows = classesQuery.data?.rows ?? []
@@ -776,17 +797,26 @@ export default function ClassesPage() {
                             </div>
                           </div>
                         ) : null}
-                        <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-72 overflow-y-auto p-1">
+                        <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-80 overflow-y-auto p-1">
                           <DropdownMenuItem onClick={() => setSectionId('all')}>
                             All Sections
                           </DropdownMenuItem>
-                          {filteredSections.map(section => (
-                            <DropdownMenuItem
-                              key={section.id}
-                              onClick={() => setSectionId(String(section.id))}
-                            >
-                              {section.code || `Section ${section.id}`}
-                            </DropdownMenuItem>
+                          {groupedSections.map(({ course, sections: courseSections }) => (
+                            <div key={course}>
+                              <div className="my-1 border-t border-border" />
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                {course}
+                              </div>
+                              {courseSections.map(section => (
+                                <DropdownMenuItem
+                                  key={section.id}
+                                  onClick={() => setSectionId(String(section.id))}
+                                  className="pl-4"
+                                >
+                                  {section.code || `Section ${section.id}`}
+                                </DropdownMenuItem>
+                              ))}
+                            </div>
                           ))}
                         </ReactLenis>
                       </div>

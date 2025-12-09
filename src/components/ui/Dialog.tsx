@@ -38,12 +38,14 @@ interface DialogProps {
   className?: string
   initialFocus?: React.RefObject<HTMLElement>
   hideDefaultClose?: boolean
+  /** If false, clicking overlay won't close dialog (default: false for safety) */
+  closeOnOverlayClick?: boolean
 }
 
 // ...
 
 export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
-  ({ open, onOpenChange, onClose, children, className, initialFocus, hideDefaultClose }, ref) => {
+  ({ open, onOpenChange, onClose, children, className, initialFocus, hideDefaultClose, closeOnOverlayClick = false }, ref) => {
     const [mounted, setMounted] = React.useState(false)
     const prefersReducedMotion = useReducedMotion()
     const panelRef = React.useRef<HTMLDivElement | null>(null)
@@ -219,7 +221,7 @@ export const Dialog = React.forwardRef<HTMLDivElement, DialogProps>(
                 className="fixed inset-0 bg-black/45"
                 aria-hidden="true"
                 style={{ willChange: 'opacity' }}
-                onClick={() => handleOpenChange(false)}
+                onClick={() => closeOnOverlayClick && handleOpenChange(false)}
               />
               <motion.div
                 key="dialog-panel"

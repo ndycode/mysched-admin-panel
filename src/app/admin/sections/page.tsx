@@ -31,6 +31,7 @@ import { Badge, Button, PrimaryButton } from '@/components/ui'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
 import { AddSectionDialog } from '../_components/dialogs/AddSectionDialog'
 import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog'
+import { Checkbox } from '@/components/ui/Checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -448,6 +449,9 @@ export default function SectionsPage() {
   const [pageSize, setPageSize] = useState(10)
   const [exporting, setExporting] = useState(false)
   const [statsPulse, setStatsPulse] = useState(0)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
 
   const sectionsQuery = useQuery({
     queryKey: ['sections', 'table', sort, sortDirection, search, instructorFilter],
@@ -615,6 +619,45 @@ export default function SectionsPage() {
     const start = (page - 1) * pageSize
     return filteredSections.slice(start, start + pageSize)
   }, [filteredSections, page, pageSize])
+
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === paginatedSections.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(paginatedSections.map(s => s.id).filter((id): id is number => id !== null)))
+    }
+  }, [paginatedSections, selectedIds.size])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setIsBulkDeleting(true)
+    try {
+      for (const id of selectedIds) {
+        await api(`/api/sections/${id}`, { method: 'DELETE' })
+      }
+      queryClient.invalidateQueries({ queryKey: ['sections', 'table'] })
+      toast({ kind: 'success', msg: `Deleted ${selectedIds.size} section(s)` })
+      setSelectedIds(new Set())
+      setBulkDeleteConfirmOpen(false)
+    } catch {
+      toast({ kind: 'error', msg: 'Some deletions failed' })
+    } finally {
+      setIsBulkDeleting(false)
+    }
+  }, [selectedIds, queryClient, toast])
 
   const activeFilters = useMemo(() => {
     const pills: string[] = []

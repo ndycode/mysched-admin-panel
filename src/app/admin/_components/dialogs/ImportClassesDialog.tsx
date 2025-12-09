@@ -148,6 +148,20 @@ export function ImportClassesDialog({
         }
     }, [open])
 
+    // Fetch sections when semester changes
+    useEffect(() => {
+        const fetchSections = async () => {
+            if (!selectedSemesterId) return
+            try {
+                const data = await api<Section[]>(`/api/sections?semester_id=${selectedSemesterId}`)
+                setSections(data)
+            } catch (err) {
+                console.error('Failed to fetch sections:', err)
+            }
+        }
+        fetchSections()
+    }, [selectedSemesterId])
+
     const selectedSection = useMemo(() =>
         sections.find(s => String(s.id) === selectedSectionId),
         [sections, selectedSectionId])

@@ -431,75 +431,102 @@ export function ImportClassesDialog({
 
         let totalImported = 0
 
-        // Track instructors created across ALL images to avoid duplicate creation
-        const createdInstructorsMap = new Map<string, string>()
-        // Track sections created across ALL images to avoid duplicate creation
+        // Maps for created resources (used across all images)
         const createdSectionsMap = new Map<string, number>()
+        const createdInstructorsMap = new Map<string, string>()
 
         try {
-            // Process each image's preview data
+            // ═══════════════════════════════════════════════════════════════════
+            // PHASE 1: Collect ALL unique sections needed across ALL images
+            // ═══════════════════════════════════════════════════════════════════
+            const allPendingSectionCodes = new Set<string>()
+            for (let idx = 0; idx < allPreviewData.length; idx++) {
+                const sectionId = selectedSectionIds[idx] ?? 'none'
+                if (sectionId.startsWith('create:')) {
+                    const code = sectionId.replace('create:', '')
+                    const normalizedCode = code.trim().replace(/\s+/g, ' ').toUpperCase()
+                    allPendingSectionCodes.add(normalizedCode)
+                }
+            }
+            console.log(`[Import] Phase 1: Found ${allPendingSectionCodes.size} unique sections to create:`, [...allPendingSectionCodes])
+
+            // ═══════════════════════════════════════════════════════════════════
+            // PHASE 2: Collect ALL unique instructors needed across ALL images
+            // ═══════════════════════════════════════════════════════════════════
+            const allPendingInstructorNames = new Set<string>()
+            for (const preview of allPreviewData) {
+                for (const row of preview.rows) {
+                    const instructorValue = row.matched_instructor?.id
+                    if (instructorValue && instructorValue.startsWith('create:')) {
+                        const name = instructorValue.replace('create:', '')
+                        allPendingInstructorNames.add(name)
+                    }
+                }
+            }
+            console.log(`[Import] Phase 2: Found ${allPendingInstructorNames.size} unique instructors to create:`, [...allPendingInstructorNames])
+
+            // ═══════════════════════════════════════════════════════════════════
+            // PHASE 3: Create ALL sections upfront
+            // ═══════════════════════════════════════════════════════════════════
+            if (allPendingSectionCodes.size > 0) {
+                console.log(`[Import] Phase 3: Creating ${allPendingSectionCodes.size} sections...`)
+                for (const normalizedCode of allPendingSectionCodes) {
+                    try {
+                        const newSection = await createSection(normalizedCode)
+                        console.log(`[Import] Created/found section "${normalizedCode}" with id: ${newSection.id}`)
+                        setSections(prev => {
+                            // Only add if not already in the list
+                            if (prev.some(s => s.id === newSection.id)) return prev
+                            return [...prev, newSection]
+                        })
+                        createdSectionsMap.set(normalizedCode, newSection.id)
+                    } catch (error) {
+                        console.error(`[Import] Failed to create section "${normalizedCode}":`, error)
+                        const { message } = normalizeApiError(error, 'Failed to create section')
+                        throw new Error(`Section "${normalizedCode}": ${message}`)
+                    }
+                }
+                console.log(`[Import] Phase 3 complete: ${createdSectionsMap.size} sections ready`)
+            }
+
+            // ═══════════════════════════════════════════════════════════════════
+            // PHASE 4: Create ALL instructors upfront
+            // ═══════════════════════════════════════════════════════════════════
+            if (allPendingInstructorNames.size > 0) {
+                console.log(`[Import] Phase 4: Creating ${allPendingInstructorNames.size} instructors...`)
+                for (const name of allPendingInstructorNames) {
+                    try {
+                        const newInstructor = await createInstructor(name)
+                        console.log(`[Import] Created/found instructor "${name}" with id: ${newInstructor.id}`)
+                        createdInstructorsMap.set(name, newInstructor.id)
+                    } catch (error) {
+                        console.error(`[Import] Failed to create instructor "${name}":`, error)
+                        const { message } = normalizeApiError(error, 'Failed to create instructor')
+                        throw new Error(`Instructor "${name}": ${message}`)
+                    }
+                }
+                console.log(`[Import] Phase 4 complete: ${createdInstructorsMap.size} instructors ready`)
+            }
+
+            // ═══════════════════════════════════════════════════════════════════
+            // PHASE 5: Process ALL images' classes
+            // ═══════════════════════════════════════════════════════════════════
+            console.log(`[Import] Phase 5: Processing ${allPreviewData.length} images...`)
             for (let idx = 0; idx < allPreviewData.length; idx++) {
                 const preview = allPreviewData[idx]
                 let finalSectionId = selectedSectionIds[idx] ?? 'none'
 
                 console.log(`[Import] Processing Image ${idx + 1}/${allPreviewData.length}`)
-                console.log(`[Import] Section selection: "${finalSectionId}"`)
 
-                // If we have a pending section code, create it first
+                // Resolve section ID from map if it was a create request
                 if (finalSectionId.startsWith('create:')) {
                     const code = finalSectionId.replace('create:', '')
                     const normalizedCode = code.trim().replace(/\s+/g, ' ').toUpperCase()
-
-                    // Check if we already created this section in a previous image
-                    const existingCreatedId = createdSectionsMap.get(normalizedCode)
-                    if (existingCreatedId) {
-                        console.log(`[Import] Reusing section "${code}" from previous image (id: ${existingCreatedId})`)
-                        finalSectionId = String(existingCreatedId)
+                    const resolvedId = createdSectionsMap.get(normalizedCode)
+                    if (resolvedId) {
+                        finalSectionId = String(resolvedId)
                     } else {
-                        try {
-                            console.log(`[Import] Creating section: "${code}"`)
-                            const newSection = await createSection(code)
-                            console.log(`[Import] Created section "${code}" with id: ${newSection.id}`)
-                            setSections(prev => [...prev, newSection])
-                            createdSectionsMap.set(normalizedCode, newSection.id)
-                            finalSectionId = String(newSection.id)
-                        } catch (error) {
-                            console.error(`[Import] Failed to create section:`, error)
-                            const { message } = normalizeApiError(error, 'Failed to create section')
-                            throw new Error(`Image ${idx + 1}: ${message}`)
-                        }
-                    }
-                }
-
-                // Create any pending instructors first
-                const pendingInstructorNames = new Set<string>()
-                preview.rows.forEach((row: SchedulePreviewRow) => {
-                    const instructorValue = row.matched_instructor?.id
-                    if (instructorValue && instructorValue.startsWith('create:')) {
-                        const name = instructorValue.replace('create:', '')
-                        // Only add if not already created in a previous image
-                        if (!createdInstructorsMap.has(name)) {
-                            pendingInstructorNames.add(name)
-                        } else {
-                            console.log(`[Import] Reusing instructor "${name}" from previous image (id: ${createdInstructorsMap.get(name)})`)
-                        }
-                    }
-                })
-
-                console.log(`[Import] Image ${idx + 1}: ${pendingInstructorNames.size} new instructors to create:`, [...pendingInstructorNames])
-
-                if (pendingInstructorNames.size > 0) {
-                    try {
-                        for (const name of pendingInstructorNames) {
-                            console.log(`[Import] Creating instructor: "${name}"`)
-                            const newInstructor = await createInstructor(name)
-                            console.log(`[Import] Created instructor "${name}" with id: ${newInstructor.id}`)
-                            createdInstructorsMap.set(name, newInstructor.id)
-                        }
-                    } catch (error) {
-                        console.error(`[Import] Failed to create instructor:`, error)
-                        const { message } = normalizeApiError(error, 'Failed to create instructor')
-                        throw new Error(`Image ${idx + 1}: ${message}`)
+                        throw new Error(`Image ${idx + 1}: Section "${code}" was not created`)
                     }
                 }
 
@@ -523,13 +550,13 @@ export function ImportClassesDialog({
                         }
 
                         return {
-                            day: row.day,
-                            start: row.start,
-                            end: row.end,
+                            day: row.day || 'M',  // Default to Monday if missing
+                            start: row.start || '08:00',  // Default to 8 AM
+                            end: row.end || '09:00',  // Default to 9 AM
                             code: row.code || 'UNKNOWN',
                             title: row.title || 'Unknown Class',
-                            units: row.units,
-                            room: row.room,
+                            units: row.units ?? 0,  // Default to 0 units if null
+                            room: row.room || null,  // Allow null for room
                             instructor_id: instructorId,
                         }
                     })
@@ -548,8 +575,10 @@ export function ImportClassesDialog({
 
                 const result = await res.json()
                 totalImported += result.count
+                console.log(`[Import] Image ${idx + 1}: Imported ${result.count} classes`)
             }
 
+            console.log(`[Import] Phase 5 complete: ${totalImported} total classes imported`)
             onImported(totalImported)
             handleClose()
         } catch (err) {

@@ -110,11 +110,21 @@ function installSupabaseMock() {
           })),
         }
       }
+      if (table === 'user_settings') {
+        return {
+          delete: vi.fn(() => ({
+            eq: vi.fn(async () => ({ error: null })),
+          })),
+        }
+      }
       return {
         upsert: vi.fn(() => ({
           select: vi.fn(() => ({
             eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: null, error: null })) })),
           })),
+        })),
+        delete: vi.fn(() => ({
+          eq: vi.fn(async () => ({ error: null })),
         })),
       }
     }),

@@ -319,6 +319,24 @@ export default function ClassesPage() {
       }))
   }, [filteredSections])
 
+  // Group instructors by department for cascading dropdown
+  const groupedInstructors = useMemo(() => {
+    const groups = new Map<string, InstructorSummary[]>()
+
+    for (const instructor of instructors) {
+      const dept = instructor.department?.trim() || 'Other'
+      if (!groups.has(dept)) groups.set(dept, [])
+      groups.get(dept)!.push(instructor)
+    }
+
+    return Array.from(groups.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([department, insts]) => ({
+        department,
+        instructors: insts.sort((a, b) => a.full_name.localeCompare(b.full_name))
+      }))
+  }, [instructors])
+
   // Merge semester data into classes rows from sections
   const rows = useMemo(() => {
     const rawRows = classesQuery.data?.rows ?? []
@@ -884,14 +902,27 @@ export default function ClassesPage() {
                             </div>
                           </div>
                         ) : null}
-                        <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-72 overflow-y-auto p-1">
+                        <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-80 overflow-y-auto p-1">
                           <DropdownMenuItem onClick={() => setInstructorFilter('all')}>
                             All Instructors
                           </DropdownMenuItem>
-                          {instructors.map(instructor => (
-                            <DropdownMenuItem key={instructor.id} onClick={() => setInstructorFilter(instructor.id)}>
-                              {instructor.full_name}
-                            </DropdownMenuItem>
+                          <div className="my-1 border-t border-border" />
+                          {groupedInstructors.map(({ department, instructors: deptInstructors }) => (
+                            <DropdownMenuSub key={department}>
+                              <DropdownMenuSubTrigger className="text-sm">
+                                {department}
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {deptInstructors.map(instructor => (
+                                  <DropdownMenuItem
+                                    key={instructor.id}
+                                    onClick={() => setInstructorFilter(instructor.id)}
+                                  >
+                                    {instructor.full_name}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
                           ))}
                         </ReactLenis>
                       </div>

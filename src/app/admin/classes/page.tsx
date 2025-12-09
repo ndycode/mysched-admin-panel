@@ -34,6 +34,7 @@ import {
   ChevronsUpDown,
   ArrowUp,
   ArrowDown,
+  X,
 } from 'lucide-react'
 
 import { AvatarThumbnail } from '@/components/AvatarThumbnail'
@@ -986,13 +987,35 @@ export default function ClassesPage() {
                 </div>
               </div>
             ) : null}
+
+            {/* Bulk actions toolbar */}
+            {selectedIds.size > 0 && (
+              <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3">
+                <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setBulkDeleteConfirmOpen(true)}
+                  disabled={isBulkDeleting}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete ({selectedIds.size})
+                </Button>
+                <div className="flex-1" />
+                <Button variant="ghost" size="sm" onClick={clearSelection}>
+                  <X className="mr-1 h-4 w-4" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+
             <AdminTable
               loading={classesLoading}
               loadingLabel={null}
               error={classesErrorMessage}
               isEmpty={!classesLoading && pageRows.length === 0}
               emptyMessage="No classes found matching your filters."
-              colSpan={7}
+              colSpan={8}
               minWidthClass="min-w-[1200px] table-fixed"
               pagination={
                 <div className="flex w-full flex-wrap items-center gap-3 sm:justify-between">
@@ -1033,7 +1056,14 @@ export default function ClassesPage() {
               }
               header={
                 <tr>
-                  <th className="w-[200px] rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                  <th scope="col" className="w-12 rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                    <Checkbox
+                      checked={pageRows.length > 0 && selectedIds.size === pageRows.length}
+                      indeterminate={selectedIds.size > 0 && selectedIds.size < pageRows.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
+                  <th className="w-[200px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     <SortableTableHeader sortKey="title" label="Class Name" currentSort={sort} sortDirection={sortDirection} userSorted={userSorted} onSortChange={handleSort} />
                   </th>
                   <th className="w-[100px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
@@ -1060,84 +1090,93 @@ export default function ClassesPage() {
                 </tr>
               }
             >
-              {pageRows.map(row => (
-                <React.Fragment key={row.id}>
-                  <tr className="group transition-colors duration-200 hover:bg-muted/50 h-[52px]">
-                    <td className="px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
-                      <div className="w-full truncate" title={row.title ?? undefined}>
-                        {row.title ?? '-'}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">{row.code ?? '-'}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-                      {row.section_id ? sectionLookup.get(row.section_id) ?? row.section_id : '-'}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-sm sm:px-4">
-                      {row.sections?.semesters ? (
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-foreground">{row.sections.semesters.name}</span>
-                          {row.sections.semesters.is_active && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-sm text-foreground sm:px-4">
-                      <div className="flex items-center gap-2.5">
-                        <AvatarThumbnail
-                          name={row.instructor_profile?.full_name ?? row.instructor ?? 'Unassigned'}
-                          src={row.instructor_profile?.avatar_url ?? null}
-                          size="sm"
+              {pageRows.map(row => {
+                const isSelected = selectedIds.has(row.id)
+                return (
+                  <React.Fragment key={row.id}>
+                    <tr className={`group transition-colors duration-200 h-[52px] ${isSelected ? 'bg-primary/5' : 'hover:bg-muted/50'}`}>
+                      <td className="w-12 px-3 py-2.5 sm:px-4">
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={() => toggleSelect(row.id)}
                         />
-                        <div className="min-w-0 flex-1 overflow-hidden">
-                          <div className="font-medium text-foreground truncate text-[13px]">{row.instructor ?? '-'}</div>
-                          {row.instructor_profile?.title || row.instructor_profile?.department ? (
-                            <div className="truncate text-[11px] text-muted-foreground">
-                              {[row.instructor_profile?.title, row.instructor_profile?.department].filter(Boolean).join(' - ')}
-                            </div>
-                          ) : null}
+                      </td>
+                      <td className="px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
+                        <div className="w-full truncate" title={row.title ?? undefined}>
+                          {row.title ?? '-'}
                         </div>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate" title={formatSchedule(row)}>{formatSchedule(row)}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 min-w-[70px]">{row.room ?? '-'}</td>
-                    <td className="sticky right-0 px-3 py-2.5 text-right sm:px-4 border-l border-border w-[60px] bg-background dark:bg-black group-hover:bg-muted/50 transition-colors duration-200" style={{ backgroundColor: 'var(--background)' }}>
-                      <div className="relative inline-flex">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <ActionMenuTrigger
-                              ariaLabel="Class actions"
-                              icon={MoreVertical}
-                              size="sm"
-                            />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                void handleViewDetails(row)
-                              }}
-                            >
-                              <Eye className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-                              View details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditClass(row)}>
-                              <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                              onClick={() => handleDeleteClass(row)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" aria-hidden />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </td>
-                  </tr>
-                </React.Fragment>
-              ))}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">{row.code ?? '-'}</td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
+                        {row.section_id ? sectionLookup.get(row.section_id) ?? row.section_id : '-'}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-sm sm:px-4">
+                        {row.sections?.semesters ? (
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-foreground">{row.sections.semesters.name}</span>
+                            {row.sections.semesters.is_active && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Active</span>}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-sm text-foreground sm:px-4">
+                        <div className="flex items-center gap-2.5">
+                          <AvatarThumbnail
+                            name={row.instructor_profile?.full_name ?? row.instructor ?? 'Unassigned'}
+                            src={row.instructor_profile?.avatar_url ?? null}
+                            size="sm"
+                          />
+                          <div className="min-w-0 flex-1 overflow-hidden">
+                            <div className="font-medium text-foreground truncate text-[13px]">{row.instructor ?? '-'}</div>
+                            {row.instructor_profile?.title || row.instructor_profile?.department ? (
+                              <div className="truncate text-[11px] text-muted-foreground">
+                                {[row.instructor_profile?.title, row.instructor_profile?.department].filter(Boolean).join(' - ')}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate" title={formatSchedule(row)}>{formatSchedule(row)}</td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 min-w-[70px]">{row.room ?? '-'}</td>
+                      <td className="sticky right-0 px-3 py-2.5 text-right sm:px-4 border-l border-border w-[60px] bg-background dark:bg-black group-hover:bg-muted/50 transition-colors duration-200" style={{ backgroundColor: 'var(--background)' }}>
+                        <div className="relative inline-flex">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <ActionMenuTrigger
+                                ariaLabel="Class actions"
+                                icon={MoreVertical}
+                                size="sm"
+                              />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  void handleViewDetails(row)
+                                }}
+                              >
+                                <Eye className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                                View details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditClass(row)}>
+                                <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                onClick={() => handleDeleteClass(row)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" aria-hidden />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  </React.Fragment>
+                )
+              })}
               {/* Spacer rows to maintain consistent height */}
               {!classesLoading && Array.from({ length: Math.max(0, pageSize - pageRows.length) }).map((_, index) => (
                 <tr key={`spacer-${index}`} aria-hidden="true" className="h-[52px]">
@@ -1185,6 +1224,14 @@ export default function ClassesPage() {
           description={`Are you sure you want to delete "${classToDelete?.title ?? classToDelete?.code ?? 'this class'}"? This action cannot be undone.`}
           onConfirm={() => void confirmDeleteClass()}
           isDeleting={isDeleting}
+        />
+        <DeleteConfirmationDialog
+          open={bulkDeleteConfirmOpen}
+          onOpenChange={setBulkDeleteConfirmOpen}
+          title="Delete Selected Classes"
+          description={`Are you sure you want to delete ${selectedIds.size} class(es)? This action cannot be undone.`}
+          onConfirm={() => void handleBulkDelete()}
+          isDeleting={isBulkDeleting}
         />
       </div >
     </div >

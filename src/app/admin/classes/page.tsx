@@ -64,6 +64,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/DropdownMenu'
 import {
   DAY_SELECT_OPTIONS,
@@ -801,22 +804,23 @@ export default function ClassesPage() {
                           <DropdownMenuItem onClick={() => setSectionId('all')}>
                             All Sections
                           </DropdownMenuItem>
+                          <div className="my-1 border-t border-border" />
                           {groupedSections.map(({ course, sections: courseSections }) => (
-                            <div key={course}>
-                              <div className="my-1 border-t border-border" />
-                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                            <DropdownMenuSub key={course}>
+                              <DropdownMenuSubTrigger className="text-sm">
                                 {course}
-                              </div>
-                              {courseSections.map(section => (
-                                <DropdownMenuItem
-                                  key={section.id}
-                                  onClick={() => setSectionId(String(section.id))}
-                                  className="pl-4"
-                                >
-                                  {section.code || `Section ${section.id}`}
-                                </DropdownMenuItem>
-                              ))}
-                            </div>
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {courseSections.map(section => (
+                                  <DropdownMenuItem
+                                    key={section.id}
+                                    onClick={() => setSectionId(String(section.id))}
+                                  >
+                                    {section.code || `Section ${section.id}`}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
                           ))}
                         </ReactLenis>
                       </div>

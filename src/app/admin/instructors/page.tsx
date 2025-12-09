@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarClock, Pencil, Plus, RefreshCw, Search, Trash2, Users, ChevronsUpDown, ArrowUp, ArrowDown, ChevronDown, X, Check, MoreVertical } from 'lucide-react'
+import { CalendarClock, Pencil, Plus, RefreshCw, Search, Trash2, Users, ChevronsUpDown, ArrowUp, ArrowDown, ChevronDown, X, Check, MoreVertical, Wand2 } from 'lucide-react'
 
 import { AvatarThumbnail } from '@/components/AvatarThumbnail'
 import { Button } from '@/components/ui'
@@ -78,6 +78,7 @@ export default function InstructorsPage() {
   const [scheduleInstructor, setScheduleInstructor] = useState<Instructor | null>(null)
   const [instructorToDelete, setInstructorToDelete] = useState<Instructor | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isAutoAssigning, setIsAutoAssigning] = useState(false)
   const FILTER_STORAGE_KEY = 'admin_instructors_filters'
 
   const toast = useToast()
@@ -281,6 +282,22 @@ export default function InstructorsPage() {
     }
   }, [instructorToDelete, invalidate, toast])
 
+  const handleAutoAssign = useCallback(async () => {
+    setIsAutoAssigning(true)
+    try {
+      const result = await api<{ message: string; updated: number }>('/api/instructors/auto-assign-departments', {
+        method: 'POST',
+      })
+      toast({ kind: 'success', msg: result.message })
+      invalidate()
+    } catch (error) {
+      const msg = (error as { message?: string } | null)?.message || 'Auto-assign failed'
+      toast({ kind: 'error', msg })
+    } finally {
+      setIsAutoAssigning(false)
+    }
+  }, [invalidate, toast])
+
   const headerActions = (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
       <AnimatedActionBtn
@@ -295,6 +312,14 @@ export default function InstructorsPage() {
         variant="secondary"
         spinner="framer"
         className="hidden sm:inline-flex"
+      />
+      <AnimatedActionBtn
+        icon={Wand2}
+        label="Auto-assign Departments"
+        onClick={() => void handleAutoAssign()}
+        isLoading={isAutoAssigning}
+        loadingLabel="Assigning..."
+        variant="secondary"
       />
       <AnimatedActionBtn
         icon={Plus}

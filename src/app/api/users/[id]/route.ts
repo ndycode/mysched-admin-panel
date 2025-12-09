@@ -213,6 +213,14 @@ export async function DELETE(
     }
 
     const { data: profileBefore } = await sb.from('profiles').select().eq('id', id).maybeSingle()
+
+    // Delete user_settings first (foreign key constraint)
+    const { error: settingsError } = await sb.from('user_settings').delete().eq('user_id', id)
+    if (settingsError) {
+      console.warn('Failed to delete user_settings:', settingsError)
+      // Continue anyway - might not exist
+    }
+
     const removed = await sb.auth.admin.deleteUser(id)
     if (removed.error) {
       const status = typeof removed.error.status === 'number' ? removed.error.status : 500

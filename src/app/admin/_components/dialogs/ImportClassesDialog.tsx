@@ -13,6 +13,9 @@ import {
     DropdownMenuTrigger,
     DropdownMenuLabel,
     DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent,
 } from '@/components/ui/DropdownMenu'
 import { TimeInput } from '@/components/ui/TimeInput'
 import { type SchedulePreviewRow } from '@/lib/schedule-import'
@@ -165,6 +168,27 @@ export function ImportClassesDialog({
     const selectedSection = useMemo(() =>
         sections.find(s => String(s.id) === selectedSectionId),
         [sections, selectedSectionId])
+
+    // Group sections by course prefix (e.g., ACT, BAC FE DM, BSCRIM)
+    const groupedSections = useMemo(() => {
+        const groups = new Map<string, Section[]>()
+
+        for (const section of sections) {
+            // Parse section code like "ACT 1-1" into course="ACT" and year-section="1-1"
+            const match = section.code?.match(/^(.+?)\s+(\d+-\d+)$/)
+            const course = match ? match[1].trim() : 'Other'
+            if (!groups.has(course)) groups.set(course, [])
+            groups.get(course)!.push(section)
+        }
+
+        // Sort groups alphabetically, sort sections within each group
+        return Array.from(groups.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([course, secs]) => ({
+                course,
+                sections: secs.sort((a, b) => (a.code ?? '').localeCompare(b.code ?? ''))
+            }))
+    }, [sections])
 
     const resizeImage = async (file: File): Promise<Blob> => {
         return new Promise((resolve, reject) => {
@@ -625,7 +649,7 @@ export function ImportClassesDialog({
                                 />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-52 p-0" align="start">
-                                <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-72 overflow-y-auto p-1">
+                                <ReactLenis root={false} options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }} className="max-h-80 overflow-y-auto p-1">
                                     {currentPreviewData.detectedSectionCode && (
                                         <>
                                             <DropdownMenuItem
@@ -637,13 +661,22 @@ export function ImportClassesDialog({
                                         </>
                                     )}
                                     <DropdownMenuLabel className="font-normal text-muted-foreground">Select a section</DropdownMenuLabel>
-                                    {sections.map((section) => (
-                                        <DropdownMenuItem
-                                            key={section.id}
-                                            onClick={() => handleSectionChange(String(section.id))}
-                                        >
-                                            {section.code || `Section ${section.id}`}
-                                        </DropdownMenuItem>
+                                    {groupedSections.map(({ course, sections: courseSections }) => (
+                                        <DropdownMenuSub key={course}>
+                                            <DropdownMenuSubTrigger className="text-sm">
+                                                {course}
+                                            </DropdownMenuSubTrigger>
+                                            <DropdownMenuSubContent>
+                                                {courseSections.map(section => (
+                                                    <DropdownMenuItem
+                                                        key={section.id}
+                                                        onClick={() => handleSectionChange(String(section.id))}
+                                                    >
+                                                        {section.code || `Section ${section.id}`}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuSubContent>
+                                        </DropdownMenuSub>
                                     ))}
                                 </ReactLenis>
                             </DropdownMenuContent>

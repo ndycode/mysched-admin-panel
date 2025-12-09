@@ -20,10 +20,13 @@ import {
   ArrowUp,
   ArrowDown,
   MoreVertical,
+  X,
+  Building2,
 } from 'lucide-react'
 
 import { AvatarThumbnail } from '@/components/AvatarThumbnail'
 import { Button } from '@/components/ui'
+import { Checkbox } from '@/components/ui/Checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,6 +98,9 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<UserRow | null>(null)
   const [permissionsUser, setPermissionsUser] = useState<UserRow | null>(null)
   const [userToDelete, setUserToDelete] = useState<UserRow | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
 
   const {
     users,
@@ -362,6 +368,41 @@ export default function UsersPage() {
     }
   }, [userToDelete, deleteUser])
 
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === paginatedUsers.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(paginatedUsers.map(u => u.id)))
+    }
+  }, [paginatedUsers, selectedIds.size])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setIsBulkDeleting(true)
+    try {
+      for (const id of selectedIds) {
+        await deleteUser(id)
+      }
+      setSelectedIds(new Set())
+      setBulkDeleteConfirmOpen(false)
+    } finally {
+      setIsBulkDeleting(false)
+    }
+  }, [selectedIds, deleteUser])
+
   const refreshing = isFetching && true
   const tableLoading = isFetching
   const handleRetryUsers = useCallback(() => {
@@ -369,77 +410,86 @@ export default function UsersPage() {
   }, [refetch])
 
   const renderRow = useCallback(
-    (user: UserRow) => (
-      <tr key={user.id} className="group h-13 transition-colors duration-200 hover:bg-muted/50">
-        <td className="w-64 px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
-          <div className="flex items-center gap-3">
-            <AvatarThumbnail name={user.full_name} src={user.avatar_url} size="sm" />
-            <div className="min-w-0">
-              <div className="truncate" title={displayName(user)}>
-                {displayName(user)}
+    (user: UserRow) => {
+      const isSelected = selectedIds.has(user.id)
+      return (
+        <tr key={user.id} className={`group h-13 transition-colors duration-200 ${isSelected ? 'bg-primary/5' : 'hover:bg-muted/50'}`}>
+          <td className="w-12 px-3 py-2.5 sm:px-4">
+            <Checkbox
+              checked={isSelected}
+              onChange={() => toggleSelect(user.id)}
+            />
+          </td>
+          <td className="w-64 px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
+            <div className="flex items-center gap-3">
+              <AvatarThumbnail name={user.full_name} src={user.avatar_url} size="sm" />
+              <div className="min-w-0">
+                <div className="truncate" title={displayName(user)}>
+                  {displayName(user)}
+                </div>
               </div>
             </div>
-          </div>
-        </td>
-        <td className="w-32 px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-          {user.student_id ?? '-'}
-        </td>
-        <td className="w-56 px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate" title={user.email ?? undefined}>
-          {user.email ?? '-'}
-        </td>
-        <td className="w-32 px-3 py-2.5 sm:px-4">
-          <RoleBadge role={user.role} />
-        </td>
-        <td className="w-32 px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-          {user.app_user_id != null ? user.app_user_id : '-'}
-        </td>
-        <td className="w-44 px-3 py-2.5 text-sm text-muted-foreground sm:px-4 whitespace-nowrap">
-          {formatDateTime(user.created_at)}
-        </td>
-        <td className="w-32 px-3 py-2.5 sm:px-4">
-          <StatusBadge status={user.status} />
-        </td>
-        <td
-          className="sticky right-0 w-16 border-l border-border bg-background px-3 py-2.5 text-right transition-colors duration-200 group-hover:bg-muted/50 sm:px-4 dark:bg-black"
-          style={{ backgroundColor: 'var(--background)' }}
-        >
-          <div className="relative inline-flex">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <ActionMenuTrigger
-                  ariaLabel={`Actions for ${displayName(user)}`}
-                  icon={MoreVertical}
-                  size="sm"
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setViewingUser(user)}>
-                  <Eye className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-                  View details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEditingUser(user)}>
-                  <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPermissionsUser(user)}>
-                  <ShieldAlert className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-                  Permissions
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                  onClick={() => handleDelete(user)}
-                  disabled={deletingId === user.id}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" aria-hidden />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </td>
-      </tr>
-    ),
-    [deletingId, handleDelete],
+          </td>
+          <td className="w-32 px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
+            {user.student_id ?? '-'}
+          </td>
+          <td className="w-56 px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate" title={user.email ?? undefined}>
+            {user.email ?? '-'}
+          </td>
+          <td className="w-32 px-3 py-2.5 sm:px-4">
+            <RoleBadge role={user.role} />
+          </td>
+          <td className="w-32 px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
+            {user.app_user_id != null ? user.app_user_id : '-'}
+          </td>
+          <td className="w-44 px-3 py-2.5 text-sm text-muted-foreground sm:px-4 whitespace-nowrap">
+            {formatDateTime(user.created_at)}
+          </td>
+          <td className="w-32 px-3 py-2.5 sm:px-4">
+            <StatusBadge status={user.status} />
+          </td>
+          <td
+            className="sticky right-0 w-16 border-l border-border bg-background px-3 py-2.5 text-right transition-colors duration-200 group-hover:bg-muted/50 sm:px-4 dark:bg-black"
+            style={{ backgroundColor: 'var(--background)' }}
+          >
+            <div className="relative inline-flex">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <ActionMenuTrigger
+                    ariaLabel={`Actions for ${displayName(user)}`}
+                    icon={MoreVertical}
+                    size="sm"
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setViewingUser(user)}>
+                    <Eye className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                    View details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setEditingUser(user)}>
+                    <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setPermissionsUser(user)}>
+                    <ShieldAlert className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                    Permissions
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                    onClick={() => handleDelete(user)}
+                    disabled={deletingId === user.id}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" aria-hidden />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </td>
+        </tr>
+      )
+    },
+    [deletingId, handleDelete, selectedIds, toggleSelect],
   )
 
   const headerActions = (
@@ -639,6 +689,27 @@ export default function UsersPage() {
               </div>
             </div>
           ) : null}
+          {/* Bulk actions toolbar */}
+          {selectedIds.size > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3">
+              <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setBulkDeleteConfirmOpen(true)}
+                disabled={isBulkDeleting}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete ({selectedIds.size})
+              </Button>
+              <div className="flex-1" />
+              <Button variant="ghost" size="sm" onClick={clearSelection}>
+                <X className="mr-1 h-4 w-4" />
+                Cancel
+              </Button>
+            </div>
+          )}
+
           <AdminTable
             loading={tableLoading}
             loadingLabel={null}
@@ -649,7 +720,7 @@ export default function UsersPage() {
                 ? 'No users found. Add your first user to get started.'
                 : 'No users match your current filters.'
             }
-            colSpan={8}
+            colSpan={9}
             minWidthClass="min-w-[1200px] table-fixed"
             pagination={
               <div className="flex w-full flex-wrap items-center gap-3 sm:justify-between">
@@ -692,7 +763,14 @@ export default function UsersPage() {
             }
             header={
               <tr>
-                <th className="w-[260px] rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                <th scope="col" className="w-12 rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                  <Checkbox
+                    checked={paginatedUsers.length > 0 && selectedIds.size === paginatedUsers.length}
+                    indeterminate={selectedIds.size > 0 && selectedIds.size < paginatedUsers.length}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
+                <th className="w-[260px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                   <SortableTableHeader sortKey="name" label="User" currentSort={currentSortKey} sortDirection={currentSortDirection} userSorted={userSorted} onSortChange={handleSortChange} />
                 </th>
                 <th className="w-[130px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
@@ -722,6 +800,7 @@ export default function UsersPage() {
             {paginatedUsers.map(user => renderRow(user))}
             {!isLoading && Array.from({ length: Math.max(0, pageSize - paginatedUsers.length) }).map((_, index) => (
               <tr key={`spacer-${index}`} aria-hidden="true" className="h-[52px]">
+                <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                 <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                 <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                 <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
@@ -769,6 +848,14 @@ export default function UsersPage() {
         description={`Are you sure you want to delete ${userToDelete ? displayName(userToDelete) : 'this user'}? This action cannot be undone.`}
         onConfirm={() => void confirmDelete()}
         isDeleting={deletingId === userToDelete?.id}
+      />
+      <DeleteConfirmationDialog
+        open={bulkDeleteConfirmOpen}
+        onOpenChange={setBulkDeleteConfirmOpen}
+        title="Delete Selected Users"
+        description={`Are you sure you want to delete ${selectedIds.size} user(s)? This action cannot be undone.`}
+        onConfirm={() => void handleBulkDelete()}
+        isDeleting={isBulkDeleting}
       />
     </div >
   )

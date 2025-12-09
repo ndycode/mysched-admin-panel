@@ -18,7 +18,8 @@ import {
   ChevronsUpDown,
   ChevronsLeft,
   ChevronsRight,
-  LogOut
+  LogOut,
+  AlertTriangle,
 } from 'lucide-react'
 
 import { motion } from 'framer-motion'
@@ -40,6 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/admin/instructors', label: 'Instructors', icon: UserRound },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/audit', label: 'Logs', icon: FileText },
+  { href: '/admin/issues', label: 'Issues', icon: AlertTriangle },
 ]
 
 function cn(...classes: Array<string | undefined | false>) {

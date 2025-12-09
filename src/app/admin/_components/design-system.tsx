@@ -387,6 +387,6 @@ export function KpiCard({ label, value, helper, status, size = 'large', classNam
   return <MetricCard variant="simple" label={label} value={value} helper={helper} status={status} size={size} className={className} href={href} />
 }
 
-export function CardSurface({ className = '', padding = true, id, children }: { className?: string; padding?: boolean; id?: string; children: ReactNode }) {
-  return <div id={id} className={`${CARD_BASE} ${padding ? 'p-6' : ''} ${className}`}>{children}</div>
+export function CardSurface({ className = '', padding = true, id, children, onClick }: { className?: string; padding?: boolean; id?: string; children: ReactNode; onClick?: () => void }) {
+  return <div id={id} className={`${CARD_BASE} ${padding ? 'p-6' : ''} ${className}`} onClick={onClick}>{children}</div>
 }

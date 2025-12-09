@@ -218,6 +218,18 @@ export function ImportClassesDialog({
         const sectionCodes: (string | null)[] = []
 
         try {
+            // Fetch fresh sections for the selected semester to ensure accurate auto-selection
+            let currentSections = sections
+            if (selectedSemesterId) {
+                try {
+                    const freshSections = await api<Section[]>(`/api/sections?semester_id=${selectedSemesterId}`)
+                    currentSections = freshSections
+                    setSections(freshSections)
+                } catch {
+                    // Fall back to existing sections if fetch fails
+                    console.warn('Failed to fetch fresh sections, using cached sections')
+                }
+            }
             for (let i = 0; i < files.length; i++) {
                 setAnalyzeProgress({ current: i + 1, total: files.length })
 
@@ -268,7 +280,7 @@ export function ImportClassesDialog({
                 } else if (data.detectedSectionCode) {
                     // Check if section with this code already exists in the current semester's sections
                     const normalizedCode = data.detectedSectionCode.trim().toUpperCase()
-                    const existingSection = sections.find(
+                    const existingSection = currentSections.find(
                         s => s.code?.trim().toUpperCase() === normalizedCode
                     )
                     if (existingSection) {
@@ -311,30 +323,7 @@ export function ImportClassesDialog({
         return res as Section
     }
 
-    const handleCreateSection = async (codeToCreate?: string) => {
-        const code = codeToCreate ?? pendingSectionCode
-        if (!code) return
 
-        try {
-            const newSection = await createSection(code)
-
-            setSections(prev => [...prev, newSection])
-            // Update for current preview
-            setSelectedSectionIds(prev => {
-                const updated = [...prev]
-                updated[currentPreviewIndex] = String(newSection.id)
-                return updated
-            })
-            setPendingSectionCodes(prev => {
-                const updated = [...prev]
-                updated[currentPreviewIndex] = null
-                return updated
-            })
-        } catch (error) {
-            const { message } = normalizeApiError(error, 'Failed to create section')
-            setError(message)
-        }
-    }
 
     const createInstructor = async (name: string): Promise<InstructorSummary> => {
         const res = await api('/api/instructors', {

@@ -84,6 +84,7 @@ export default function InstructorsPage() {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [isBulkSettingDept, setIsBulkSettingDept] = useState(false)
   const [bulkDeptDialogOpen, setBulkDeptDialogOpen] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const FILTER_STORAGE_KEY = 'admin_instructors_filters'
 
   const toast = useToast()
@@ -588,7 +589,7 @@ export default function InstructorsPage() {
                 <Button
                   variant="danger"
                   size="sm"
-                  onClick={handleBulkDelete}
+                  onClick={() => setBulkDeleteConfirmOpen(true)}
                   disabled={isBulkDeleting}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -755,6 +756,19 @@ export default function InstructorsPage() {
               </div>
             </DialogBody>
           </Dialog>
+
+          {/* Bulk Delete Confirmation Dialog */}
+          <DeleteConfirmationDialog
+            open={bulkDeleteConfirmOpen}
+            onOpenChange={setBulkDeleteConfirmOpen}
+            title="Delete Selected Instructors"
+            description={`Are you sure you want to delete ${selectedIds.size} instructor(s)? This action cannot be undone. Instructors with assigned classes cannot be deleted.`}
+            onConfirm={() => {
+              setBulkDeleteConfirmOpen(false)
+              void handleBulkDelete()
+            }}
+            isDeleting={isBulkDeleting}
+          />
         </div>
       </div>
     </div>

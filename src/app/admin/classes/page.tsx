@@ -46,6 +46,7 @@ import {
   Select,
 } from '@/components/ui'
 import { Spinner } from '@/components/ui/Spinner'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { useToast } from '@/components/toast'
 import { api } from '@/lib/fetcher'
 import { normalizeApiError } from '@/lib/api-error-client'
@@ -203,6 +204,9 @@ export default function ClassesPage() {
   const [viewingError, setViewingError] = useState<string | null>(null)
   const [classToDelete, setClassToDelete] = useState<Row | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
 
   const toast = useToast()
   const showApiError = useCallback(
@@ -549,6 +553,46 @@ export default function ClassesPage() {
       setIsDeleting(false)
     }
   }
+
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === pageRows.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(pageRows.map(r => r.id)))
+    }
+  }, [pageRows, selectedIds.size])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setIsBulkDeleting(true)
+    try {
+      for (const id of selectedIds) {
+        await api(`/api/classes/${id}`, { method: 'DELETE' })
+      }
+      queryClient.invalidateQueries({ queryKey: ['classes'] })
+      toast({ kind: 'success', msg: `Deleted ${selectedIds.size} class(es)` })
+      setSelectedIds(new Set())
+      setBulkDeleteConfirmOpen(false)
+      setStatsPulse(prev => prev + 1)
+    } catch (error) {
+      toast({ kind: 'error', msg: 'Some deletions failed' })
+    } finally {
+      setIsBulkDeleting(false)
+    }
+  }, [selectedIds, queryClient, toast])
 
   const stats = useMemo(() => {
     const scheduled = pageRows.filter(row => classStatus(row) === 'active').length

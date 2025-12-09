@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarClock, Pencil, Plus, RefreshCw, Search, Trash2, Users, ChevronsUpDown, ArrowUp, ArrowDown, ChevronDown, X, Check, MoreVertical, Wand2 } from 'lucide-react'
+import { CalendarClock, Pencil, Plus, RefreshCw, Search, Trash2, Users, ChevronsUpDown, ArrowUp, ArrowDown, ChevronDown, X, Check, MoreVertical, Wand2, Building2 } from 'lucide-react'
 
 import { AvatarThumbnail } from '@/components/AvatarThumbnail'
 import { Button } from '@/components/ui'
@@ -79,6 +79,10 @@ export default function InstructorsPage() {
   const [instructorToDelete, setInstructorToDelete] = useState<Instructor | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isAutoAssigning, setIsAutoAssigning] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [isBulkSettingDept, setIsBulkSettingDept] = useState(false)
+  const [bulkDeptDialogOpen, setBulkDeptDialogOpen] = useState(false)
   const FILTER_STORAGE_KEY = 'admin_instructors_filters'
 
   const toast = useToast()
@@ -122,15 +126,21 @@ export default function InstructorsPage() {
   const tableLoading = isFetching
   const instructorsErrorMessage =
     (instructorsQuery.error as { message?: string } | null)?.message || null
-  const departmentOptions = useMemo(() => {
-    const values = new Set<string>()
-    instructors.forEach(item => {
-      if (item.department && item.department.trim()) {
-        values.add(item.department.trim())
-      }
-    })
-    return Array.from(values).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-  }, [instructors])
+
+  // Fetch ALL departments separately so the filter dropdown always shows all options
+  const departmentsQuery = useQuery({
+    queryKey: ['instructors', 'all-departments'],
+    queryFn: async () => {
+      const res = await api<{ rows: Instructor[] }>('/api/instructors?page=1&limit=1000')
+      const depts = new Set<string>()
+      res.rows.forEach(i => {
+        if (i.department?.trim()) depts.add(i.department.trim())
+      })
+      return Array.from(depts).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+    },
+    staleTime: 60_000,
+  })
+  const departmentOptions = departmentsQuery.data ?? []
 
   const activeFilters = useMemo(() => {
     const pills: string[] = []
@@ -298,6 +308,72 @@ export default function InstructorsPage() {
     }
   }, [invalidate, toast])
 
+  // Bulk selection handlers
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === instructors.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(instructors.map(i => i.id)))
+    }
+  }, [instructors, selectedIds.size])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setIsBulkDeleting(true)
+    try {
+      const ids = Array.from(selectedIds)
+      await api('/api/instructors/bulk', {
+        method: 'DELETE',
+        body: JSON.stringify({ ids }),
+      })
+      toast({ kind: 'success', msg: `Deleted ${ids.length} instructor(s)` })
+      setSelectedIds(new Set())
+      invalidate()
+    } catch (error) {
+      const msg = (error as { message?: string } | null)?.message || 'Bulk delete failed'
+      toast({ kind: 'error', msg })
+    } finally {
+      setIsBulkDeleting(false)
+    }
+  }, [selectedIds, invalidate, toast])
+
+  const handleBulkSetDepartment = useCallback(async (department: string) => {
+    if (selectedIds.size === 0) return
+    setIsBulkSettingDept(true)
+    try {
+      const ids = Array.from(selectedIds)
+      await api('/api/instructors/bulk', {
+        method: 'PATCH',
+        body: JSON.stringify({ ids, department }),
+      })
+      toast({ kind: 'success', msg: `Updated ${ids.length} instructor(s)` })
+      setSelectedIds(new Set())
+      setBulkDeptDialogOpen(false)
+      invalidate()
+    } catch (error) {
+      const msg = (error as { message?: string } | null)?.message || 'Bulk update failed'
+      toast({ kind: 'error', msg })
+    } finally {
+      setIsBulkSettingDept(false)
+    }
+  }, [selectedIds, invalidate, toast])
+
   const headerActions = (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
       <AnimatedActionBtn
@@ -330,50 +406,61 @@ export default function InstructorsPage() {
     </div>
   )
 
-  const renderRow = useCallback((row: Instructor) => (
-    <tr key={row.id} className="group transition-colors duration-200 hover:bg-muted/50 h-[52px]">
-      <td className="w-[280px] px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
-        <div className="flex items-center gap-2.5">
-          <AvatarThumbnail name={row.full_name} src={row.avatar_url} size="sm" />
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-medium text-foreground">{row.full_name}</div>
-            {row.title ? <div className="truncate text-[11px] text-muted-foreground">{row.title}</div> : null}
+  const renderRow = useCallback((row: Instructor) => {
+    const isSelected = selectedIds.has(row.id)
+    return (
+      <tr key={row.id} className={cn("group transition-colors duration-200 h-[52px]", isSelected ? "bg-primary/5" : "hover:bg-muted/50")}>
+        <td className="w-12 px-3 py-2.5 sm:px-4">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => toggleSelect(row.id)}
+            className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+          />
+        </td>
+        <td className="w-[280px] px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
+          <div className="flex items-center gap-2.5">
+            <AvatarThumbnail name={row.full_name} src={row.avatar_url} size="sm" />
+            <div className="min-w-0">
+              <div className="truncate text-[13px] font-medium text-foreground">{row.full_name}</div>
+              {row.title ? <div className="truncate text-[11px] text-muted-foreground">{row.title}</div> : null}
+            </div>
           </div>
-        </div>
-      </td>
-      <td className="w-60 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate">{row.email ?? '-'}</td>
-      <td className="w-44 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate">{row.title ?? '-'}</td>
-      <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate">{row.department ?? '-'}</td>
-      <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">{formatDate(row.created_at)}</td>
-      <td
-        className="sticky right-0 px-3 py-2.5 text-right sm:px-4 border-l border-border w-16 bg-background dark:bg-black group-hover:bg-muted/50 transition-colors duration-200"
-        style={{ backgroundColor: 'var(--background)' }}
-      >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <ActionMenuTrigger ariaLabel="Instructor actions" icon={MoreVertical} size="sm" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={() => setScheduleInstructor(row)}>
-              <CalendarClock className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-              Manage Schedule
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setEditing(row)}>
-              <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
-              Edit Details
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-              onClick={() => handleDelete(row)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" aria-hidden />
-              Delete Instructor
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </td>
-    </tr>
-  ), [handleDelete])
+        </td>
+        <td className="w-60 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate">{row.email ?? '-'}</td>
+        <td className="w-44 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate">{row.title ?? '-'}</td>
+        <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4 truncate">{row.department ?? '-'}</td>
+        <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">{formatDate(row.created_at)}</td>
+        <td
+          className="sticky right-0 px-3 py-2.5 text-right sm:px-4 border-l border-border w-16 bg-background dark:bg-black group-hover:bg-muted/50 transition-colors duration-200"
+          style={{ backgroundColor: 'var(--background)' }}
+        >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <ActionMenuTrigger ariaLabel="Instructor actions" icon={MoreVertical} size="sm" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={() => setScheduleInstructor(row)}>
+                <CalendarClock className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                Manage Schedule
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setEditing(row)}>
+                <Pencil className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
+                Edit Details
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                onClick={() => handleDelete(row)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" aria-hidden />
+                Delete Instructor
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </td>
+      </tr>
+    )
+  }, [handleDelete, selectedIds, toggleSelect])
 
   return (
     <div className="min-h-screen bg-background p-6 lg:p-10">
@@ -482,13 +569,47 @@ export default function InstructorsPage() {
                 </div>
               </div>
             ) : null}
+
+            {/* Bulk actions toolbar */}
+            {selectedIds.size > 0 && (
+              <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-background/95 backdrop-blur p-3 shadow-lg animate-in slide-in-from-top-2 duration-200">
+                <span className="text-sm font-medium text-foreground">
+                  {selectedIds.size} selected
+                </span>
+                <div className="h-4 w-px bg-border" />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setBulkDeptDialogOpen(true)}
+                  disabled={isBulkSettingDept}
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Set Department
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  disabled={isBulkDeleting}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete ({selectedIds.size})
+                </Button>
+                <div className="flex-1" />
+                <Button variant="ghost" size="sm" onClick={clearSelection}>
+                  <X className="mr-1 h-4 w-4" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+
             <AdminTable
               loading={tableLoading}
               loadingLabel={null}
               error={instructorsErrorMessage}
               isEmpty={!tableLoading && instructors.length === 0}
               emptyMessage="No instructors found. Try adjusting your search."
-              colSpan={6}
+              colSpan={7}
               minWidthClass="min-w-[1200px] table-fixed"
               pagination={
                 <div className="flex w-full flex-wrap items-center gap-3 sm:justify-between">
@@ -529,7 +650,15 @@ export default function InstructorsPage() {
               }
               header={
                 <tr>
-                  <th scope="col" className="w-[280px] rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                  <th scope="col" className="w-12 rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
+                    <input
+                      type="checkbox"
+                      checked={instructors.length > 0 && selectedIds.size === instructors.length}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                    />
+                  </th>
+                  <th scope="col" className="w-[280px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
                     <SortableTableHeader sortKey="name" label="Instructor" currentSort={sort} sortDirection={sortDirection} userSorted={userSorted} onSortChange={handleSortChange} />
                   </th>
                   <th scope="col" className="w-[240px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
@@ -553,6 +682,7 @@ export default function InstructorsPage() {
               {instructors.map(renderRow)}
               {!isLoading && Array.from({ length: Math.max(0, pageSize - instructors.length) }).map((_, index) => (
                 <tr key={`spacer-${index}`} aria-hidden="true" className="h-[52px]">
+                  <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
                   <td className="px-3 py-2.5 sm:px-4">&nbsp;</td>
@@ -599,6 +729,34 @@ export default function InstructorsPage() {
             onConfirm={() => void confirmDelete()}
             isDeleting={isDeleting}
           />
+
+          {/* Bulk Set Department Dialog */}
+          <Dialog open={bulkDeptDialogOpen} onOpenChange={setBulkDeptDialogOpen}>
+            <DialogBody>
+              <h2 className="text-lg font-semibold">Set Department</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose a department for the {selectedIds.size} selected instructor(s).
+              </p>
+              <div className="mt-4 space-y-2">
+                {['Accountancy', 'Arts & Media', 'Criminology', 'CSIT', 'CTHM', 'Education', 'General Education'].map(dept => (
+                  <Button
+                    key={dept}
+                    variant="secondary"
+                    className="w-full justify-start"
+                    onClick={() => handleBulkSetDepartment(dept)}
+                    disabled={isBulkSettingDept}
+                  >
+                    {dept}
+                  </Button>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button variant="ghost" onClick={() => setBulkDeptDialogOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </DialogBody>
+          </Dialog>
         </div>
       </div>
     </div>

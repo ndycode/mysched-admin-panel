@@ -52,45 +52,47 @@ const DropdownMenuSubContent = React.forwardRef<
         : { type: 'spring' as const, stiffness: 360, damping: 22, mass: 1 }
 
     return (
-        <DropdownMenuPrimitive.SubContent asChild ref={ref} sideOffset={10} {...props}>
-            <motion.div
-                initial={{
-                    opacity: 0,
-                    scale: 0.95,
-                    filter: 'blur(4px)',
-                }}
-                animate={{
-                    opacity: 1,
-                    scale: 1,
-                    filter: 'blur(0px)',
-                }}
-                exit={{
-                    opacity: 0,
-                    scale: 0.95,
-                    filter: 'blur(4px)',
-                }}
-                transition={transition}
-                className={cn(
-                    'z-[10000] min-w-[9.5rem] overflow-hidden rounded-2xl border border-border/70 bg-background/98 text-popover-foreground ring-1 ring-border/40 backdrop-blur-sm',
-                    className,
-                )}
-                style={{
-                    minWidth: 'max(var(--radix-dropdown-menu-trigger-width), 10rem)',
-                    willChange: 'transform, opacity',
-                    transformOrigin: 'var(--radix-dropdown-menu-content-transform-origin)',
-                    ...style,
-                }}
-            >
-                <ReactLenis
-                    root={false}
-                    options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }}
-                    className="max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto p-2"
+        <DropdownMenuPrimitive.Portal>
+            <DropdownMenuPrimitive.SubContent asChild ref={ref} sideOffset={10} {...props}>
+                <motion.div
+                    initial={{
+                        opacity: 0,
+                        scale: 0.95,
+                        filter: 'blur(4px)',
+                    }}
+                    animate={{
+                        opacity: 1,
+                        scale: 1,
+                        filter: 'blur(0px)',
+                    }}
+                    exit={{
+                        opacity: 0,
+                        scale: 0.95,
+                        filter: 'blur(4px)',
+                    }}
+                    transition={transition}
+                    className={cn(
+                        'z-[10000] min-w-[9.5rem] overflow-hidden rounded-2xl border border-border/70 bg-background/98 text-popover-foreground ring-1 ring-border/40 backdrop-blur-sm',
+                        className,
+                    )}
+                    style={{
+                        minWidth: 'max(var(--radix-dropdown-menu-trigger-width), 10rem)',
+                        willChange: 'transform, opacity',
+                        transformOrigin: 'var(--radix-dropdown-menu-content-transform-origin)',
+                        ...style,
+                    }}
                 >
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {children as any}
-                </ReactLenis>
-            </motion.div>
-        </DropdownMenuPrimitive.SubContent>
+                    <ReactLenis
+                        root={false}
+                        options={{ lerp: 0.12, duration: 1.2, smoothWheel: true, wheelMultiplier: 1.2 }}
+                        className="max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto p-2"
+                    >
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {children as any}
+                    </ReactLenis>
+                </motion.div>
+            </DropdownMenuPrimitive.SubContent>
+        </DropdownMenuPrimitive.Portal>
     )
 })
 DropdownMenuSubContent.displayName =

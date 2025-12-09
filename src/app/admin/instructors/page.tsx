@@ -6,6 +6,7 @@ import { CalendarClock, Pencil, Plus, RefreshCw, Search, Trash2, Users, Chevrons
 
 import { AvatarThumbnail } from '@/components/AvatarThumbnail'
 import { Button } from '@/components/ui'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
 import {
   DropdownMenu,
@@ -411,11 +412,9 @@ export default function InstructorsPage() {
     return (
       <tr key={row.id} className={cn("group transition-colors duration-200 h-[52px]", isSelected ? "bg-primary/5" : "hover:bg-muted/50")}>
         <td className="w-12 px-3 py-2.5 sm:px-4">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={isSelected}
             onChange={() => toggleSelect(row.id)}
-            className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
           />
         </td>
         <td className="w-[280px] px-3 py-2.5 text-sm font-medium text-foreground sm:px-4">
@@ -651,11 +650,10 @@ export default function InstructorsPage() {
               header={
                 <tr>
                   <th scope="col" className="w-12 rounded-tl-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={instructors.length > 0 && selectedIds.size === instructors.length}
+                      indeterminate={selectedIds.size > 0 && selectedIds.size < instructors.length}
                       onChange={toggleSelectAll}
-                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
                     />
                   </th>
                   <th scope="col" className="w-[280px] px-3 py-2 text-left text-xs font-medium text-muted-foreground sm:px-4 sm:py-3">

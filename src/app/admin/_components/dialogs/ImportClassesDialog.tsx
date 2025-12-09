@@ -312,24 +312,31 @@ export function ImportClassesDialog({
                         .trim()
 
                 const processedRows = data.rows.map((row: SchedulePreviewRow) => {
-                    if (row.instructor_name && !row.matched_instructor) {
-                        const normalizedRowName = normalizeName(row.instructor_name)
+                    // Apply defaults for missing values so they show in preview
+                    let updatedRow = {
+                        ...row,
+                        // Default units to 1 if not detected
+                        units: row.units != null ? row.units : 1,
+                    }
+
+                    if (updatedRow.instructor_name && !updatedRow.matched_instructor) {
+                        const normalizedRowName = normalizeName(updatedRow.instructor_name)
                         const existingInstructor = instructors.find(
                             inst => normalizeName(inst.full_name) === normalizedRowName
                         )
                         if (existingInstructor) {
-                            return { ...row, matched_instructor: existingInstructor }
+                            updatedRow = { ...updatedRow, matched_instructor: existingInstructor }
                         } else {
-                            return {
-                                ...row,
+                            updatedRow = {
+                                ...updatedRow,
                                 matched_instructor: {
-                                    id: `create:${row.instructor_name}`,
-                                    full_name: row.instructor_name
+                                    id: `create:${updatedRow.instructor_name}`,
+                                    full_name: updatedRow.instructor_name
                                 }
                             }
                         }
                     }
-                    return row
+                    return updatedRow
                 })
 
                 previews.push({ ...data, rows: processedRows })
@@ -584,9 +591,9 @@ export function ImportClassesDialog({
                             instructorId = createdInstructorsMap.get(name) ?? null
                         }
 
-                        // Parse units - default to 0 if not a valid number
+                        // Parse units - default to 1 if not a valid number
                         const rawUnits = row.units
-                        const unitsValue = (rawUnits != null && !isNaN(Number(rawUnits))) ? Number(rawUnits) : 0
+                        const unitsValue = (rawUnits != null && !isNaN(Number(rawUnits))) ? Number(rawUnits) : 1
 
                         return {
                             day: row.day || 'M',  // Default to Monday if missing
@@ -594,7 +601,7 @@ export function ImportClassesDialog({
                             end: row.end || '09:00',  // Default to 9 AM
                             code: row.code?.trim() || 'UNKNOWN',
                             title: row.title?.trim() || 'Unknown Class',
-                            units: unitsValue,  // Default to 0 if not detected
+                            units: unitsValue,  // Default to 1 if not detected
                             room: row.room?.trim() || null,  // Allow null for room
                             instructor_id: instructorId,
                         }

@@ -1,339 +1,206 @@
-# 🗓️ MySched Admin Panel
+# MySched Admin Panel
 
-<div align="center">
+A secure administrative dashboard for managing class schedules, sections, instructors, and users. This system serves as the backend management interface for the MySched mobile application, developed as part of an undergraduate thesis on automated class scheduling systems.
 
-**A modern, secure admin dashboard for managing class schedules, sections, instructors, and users.**
+## Overview
 
-Built as part of the **MySched** thesis project — a class scheduling mobile application.
+MySched Admin provides school administrators with tools to manage academic scheduling data that syncs with the MySched mobile app. The system handles CRUD operations for classes, sections, instructors, and user accounts while maintaining a complete audit trail of all changes.
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-Backend-green?logo=supabase)](https://supabase.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+### Core Capabilities
 
-</div>
+- **Class Management** — Create, edit, and organize class offerings with support for bulk imports via OCR
+- **Section Assignment** — Assign instructors to sections with time slot and room configurations
+- **User Administration** — Role-based access control for students, instructors, and administrators
+- **Instructor Directory** — Centralized instructor profiles with department organization
+- **Audit Logging** — Complete history of all system modifications for accountability
+- **Real-time Dashboard** — Statistics, recent activity, and system health monitoring
 
----
+## Architecture
 
-## 📖 Table of Contents
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| Frontend | Next.js 15 (App Router) | Server/client React components with TypeScript |
+| Backend | Supabase | PostgreSQL database, authentication, row-level security |
+| State | TanStack Query | Data fetching, caching, and synchronization |
+| Styling | Tailwind CSS | Utility-first CSS framework |
+| Animations | Framer Motion | UI transitions and micro-interactions |
+| Testing | Vitest | Unit and integration testing (800+ tests) |
 
-- [About The Project](#-about-the-project)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
-- [Database Setup](#-database-setup)
-- [Running Locally](#-running-locally)
-- [Testing](#-testing)
-- [Deployment](#-deployment)
-- [License](#-license)
+### Key Design Decisions
 
----
+1. **Server-side validation** — All mutations go through API routes with admin verification
+2. **Rate limiting** — Database-backed throttling via `public.hit_rate_limit` stored procedure
+3. **Audit trail** — Every write operation is logged with user context and payload
+4. **Virtualized lists** — React Virtuoso handles large datasets without performance degradation
 
-## 📋 About The Project
-
-**MySched Admin Panel** is the administrative backend for the MySched mobile application. It provides a comprehensive dashboard for school administrators to manage:
-
-- **Class Schedules** — Create, edit, and organize class offerings
-- **Sections** — Manage class sections with instructor assignments
-- **Instructors** — Track instructor information and availability
-- **Users** — Control user access and permissions
-- **Audit Logs** — Monitor all system changes for accountability
-
-This project is developed as part of an academic thesis on class scheduling systems.
-
----
-
-## ✨ Features
-
-### 👩‍💼 User Management
-- Add, edit, and delete users (Students, Instructors, Admins)
-- Role-based access control
-- Bulk operations support
-
-### 📚 Class Management
-- Create and manage class offerings
-- Import classes from images using AI/OCR
-- Filter by semester, section, and instructor
-
-### 📅 Section Management
-- Assign instructors to sections
-- Set time slots and rooms
-- Track enrollment status
-
-### 👨‍🏫 Instructor Directory
-- Comprehensive instructor profiles
-- Department organization
-- Workload tracking
-
-### 📊 Dashboard & Analytics
-- Real-time statistics
-- Recent activity feed
-- System health monitoring
-
-### 🔒 Security Features
-- Admin-only access with Supabase Auth
-- Rate limiting to prevent abuse
-- Complete audit trail of all changes
-- CSRF protection
-
-### 🌙 UI/UX
-- **Dark mode support** — Full dark/light theme compatibility
-- **Responsive design** — Works on desktop and tablet
-- **Smooth animations** — Framer Motion powered transitions
-- **Virtualized lists** — Handle thousands of records efficiently
-
----
-
-## 🛠️ Tech Stack
-
-| Category | Technology |
-|----------|------------|
-| **Framework** | Next.js 15 (App Router) |
-| **Language** | TypeScript |
-| **Database** | Supabase (PostgreSQL) |
-| **Authentication** | Supabase Auth |
-| **Styling** | Tailwind CSS |
-| **State Management** | TanStack Query (React Query) |
-| **Animations** | Framer Motion |
-| **Forms** | React Hook Form |
-| **Testing** | Vitest |
-| **Virtualization** | React Virtuoso |
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-mysched-admin-panel/
-├── src/
-│   ├── app/
-│   │   ├── admin/           # Admin dashboard pages
-│   │   │   ├── classes/     # Class management
-│   │   │   ├── sections/    # Section management
-│   │   │   ├── instructors/ # Instructor directory
-│   │   │   ├── users/       # User management
-│   │   │   ├── audit/       # Audit log viewer
-│   │   │   ├── semesters/   # Semester management
-│   │   │   ├── settings/    # App settings
-│   │   │   └── page.tsx     # Dashboard home
-│   │   ├── api/             # REST API endpoints
-│   │   └── login/           # Authentication pages
-│   ├── components/
-│   │   ├── ui/              # Reusable UI components
-│   │   └── selectors/       # Dropdown selectors
-│   └── lib/
-│       ├── constants.ts     # Shared constants
-│       ├── query-config.ts  # React Query config
-│       ├── api-routes.ts    # API endpoint definitions
-│       ├── query-keys.ts    # Cache key definitions
-│       └── supabase-*.ts    # Supabase client utilities
-├── supabase/
-│   └── schema.sql           # Database schema
-├── public/                  # Static assets
-└── package.json
+src/
+├── app/
+│   ├── admin/              # Protected admin routes
+│   │   ├── classes/        # Class CRUD interface
+│   │   ├── sections/       # Section management
+│   │   ├── instructors/    # Instructor directory
+│   │   ├── users/          # User management
+│   │   ├── audit/          # Audit log viewer
+│   │   ├── semesters/      # Semester configuration
+│   │   ├── settings/       # Application settings
+│   │   └── page.tsx        # Dashboard home
+│   ├── api/                # REST endpoints (protected by requireAdmin)
+│   └── login/              # Authentication flow
+├── components/
+│   ├── ui/                 # Reusable primitives (Button, Input, Dialog, etc.)
+│   └── selectors/          # Dropdown components
+└── lib/
+    ├── constants.ts        # Shared application constants
+    ├── query-config.ts     # React Query configuration
+    ├── api-routes.ts       # Centralized API endpoint definitions
+    ├── query-keys.ts       # Cache key factory
+    ├── supabase-*.ts       # Database client utilities
+    └── audit.ts            # Audit logging service
 ```
 
----
+## Prerequisites
 
-## 🚀 Getting Started
+- Node.js 18.18 or higher (Node 20 recommended)
+- npm 9+ (or equivalent package manager)
+- Supabase project with applied schema
 
-### Prerequisites
+## Setup Instructions
 
-Before you begin, ensure you have:
+### 1. Clone and Install
 
-- **Node.js 18.18+** (Node 20 recommended)
-- **npm 9+** or yarn/pnpm
-- **Supabase account** — [Create one for free](https://supabase.com/)
+```bash
+git clone https://github.com/ndycode/mysched-admin-panel.git
+cd mysched-admin-panel
+npm install
+```
 
-### Installation
+### 2. Environment Configuration
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/ndycode/mysched-admin-panel.git
-   cd mysched-admin-panel
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables** (see [Environment Variables](#-environment-variables))
-
-4. **Set up the database** (see [Database Setup](#-database-setup))
-
-5. **Run the development server**
-   ```bash
-   npm run dev
-   ```
-
-6. **Open in browser**
-   Visit [http://localhost:3000](http://localhost:3000)
-
----
-
-## 🔐 Environment Variables
-
-Create a `.env.local` file in the root directory:
+Copy the example environment file and fill in your Supabase credentials:
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-### Required Variables
+**Required variables:**
 
 | Variable | Description |
 |----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous/public key |
-| `SUPABASE_SERVICE_ROLE` | Supabase service role key (⚠️ keep secret!) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public anonymous key |
+| `SUPABASE_SERVICE_ROLE` | Service role key (keep confidential) |
 
-### Optional Variables
+**Optional variables:**
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GEMINI_API_KEY` | Google Gemini API key for OCR import | — |
-| `NEXT_PUBLIC_SITE_URL` | Public URL for redirects | `localhost:3000` |
-| `ALLOW_ANY_AUTH_AS_ADMIN` | Bypass admin check (dev only!) | `false` |
-| `NEXT_ADMIN_EMAILS` | Auto-promote these emails to admin | — |
+| Variable | Description |
+|----------|-------------|
+| `GEMINI_API_KEY` | Google Gemini API for OCR-based class import |
+| `NEXT_PUBLIC_SITE_URL` | Production URL for OAuth redirects |
+| `ALLOW_ANY_AUTH_AS_ADMIN` | Bypass admin check (development only) |
+| `NEXT_ADMIN_EMAILS` | Comma-separated list of emails to auto-promote |
 
-> ⚠️ **Security Warning**: Never commit `.env.local` to git. The `.gitignore` already excludes it.
+### 3. Database Setup
 
----
+Apply the schema to your Supabase project:
 
-## 🗄️ Database Setup
+**Option A: Using Supabase CLI**
+```bash
+supabase db push --file supabase/schema.sql
+```
 
-1. **Create a Supabase project** at [supabase.com](https://supabase.com/)
+**Option B: SQL Editor**
+1. Open Supabase Dashboard → SQL Editor
+2. Paste contents of `supabase/schema.sql`
+3. Execute the query
 
-2. **Apply the schema** using one of these methods:
+### 4. Create Admin User
 
-   **Option A: Supabase CLI**
-   ```bash
-   supabase db push --file supabase/schema.sql
-   ```
+After signing up through the application:
 
-   **Option B: SQL Editor**
-   - Go to your Supabase Dashboard → SQL Editor
-   - Copy the contents of `supabase/schema.sql`
-   - Run the query
+```sql
+INSERT INTO admins (user_id) VALUES ('your-user-uuid');
+```
 
-3. **Create your first admin user**
-   - Sign up through the app's login page
-   - In Supabase Dashboard, insert your user ID into the `admins` table:
-   ```sql
-   INSERT INTO admins (user_id) VALUES ('your-user-id-here');
-   ```
+### 5. Run Development Server
 
----
-
-## 💻 Running Locally
-
-### Development Mode
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000)
 
-### Production Build
-```bash
-npm run build
-npm start
-```
+Access the application at `http://localhost:3000`
 
-### Formatting
-```bash
-npm run format          # Auto-format all files
-npm run format:check    # Check formatting without changes
-```
+## Available Scripts
 
-### Type Checking
-```bash
-npx tsc --noEmit
-```
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Create production build |
+| `npm start` | Run production server |
+| `npm test` | Run test suite |
+| `npm run test:ci` | Run tests with coverage enforcement |
+| `npm run format` | Format codebase with Prettier |
+| `npm run format:check` | Verify formatting without changes |
 
----
+## Testing
 
-## 🧪 Testing
-
-The project includes **800+ tests** covering API routes, UI components, and business logic.
+The test suite includes 800+ tests covering API routes, authentication flows, UI components, and utility functions.
 
 ```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm run test:ci
-
-# Run specific test file
-npm test -- src/lib/__tests__/utils.test.ts
+npm test              # Interactive mode
+npm test -- --run     # Single run
+npm run test:ci       # With coverage thresholds
 ```
 
-### Test Coverage Areas
-- ✅ API Routes (CRUD operations)
-- ✅ Authentication flows
-- ✅ Security (rate limiting, CSRF)
-- ✅ UI Components
-- ✅ Custom hooks
-- ✅ Utility functions
+Coverage thresholds are set at 60% minimum for lines, functions, branches, and statements.
 
----
+## Deployment
 
-## 🚢 Deployment
+### Vercel
 
-### Vercel (Recommended)
+1. Import repository to Vercel
+2. Configure environment variables in project settings
+3. Deploy
 
-1. Push your code to GitHub
-2. Import project to [Vercel](https://vercel.com/)
-3. Add environment variables in Vercel dashboard
-4. Deploy!
+### Manual Deployment
 
-### Environment Variables for Production
+1. Set environment variables on your hosting platform
+2. Run `npm run build`
+3. Start with `npm start`
 
-Set these in your hosting provider:
+### Pre-deployment Checklist
 
-```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE=your-service-role-key
-```
-
-### Deployment Checklist
-
-- [ ] All environment variables configured
+- [ ] Environment variables configured
 - [ ] Database schema applied
-- [ ] Admin user created
-- [ ] Test login flow works
-- [ ] Audit logging functional
+- [ ] Admin user created and verified
+- [ ] Rate limiting function deployed
+- [ ] Audit logging confirmed operational
 
----
+## Security Considerations
 
-## 📄 License
+- Service role key is never exposed to the client
+- All API routes verify admin session before processing
+- Rate limiting prevents abuse of endpoints
+- Audit payloads are sanitized (passwords and tokens are never logged)
+- CSRF protection enabled on state-changing operations
 
-This project is developed for academic/thesis purposes.
-
----
-
-## 👥 Authors
+## Authors
 
 **Neil Daquioag** — Developer  
 **Raymond Zabiaga** — Researcher
 
+## Acknowledgments
+
+This project was developed as part of an undergraduate thesis at [Your University]. We acknowledge the following open-source projects that made this work possible:
+
+- [Next.js](https://nextjs.org/) — React framework for production
+- [Supabase](https://supabase.com/) — Open source Firebase alternative
+- [TanStack Query](https://tanstack.com/query) — Data synchronization for React
+- [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework
+- [Framer Motion](https://www.framer.com/motion/) — Animation library for React
+
 ---
 
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org/) for the incredible React framework
-- [Supabase](https://supabase.com/) for the backend infrastructure
-- [Tailwind CSS](https://tailwindcss.com/) for utility-first styling
-- [TanStack Query](https://tanstack.com/query) for data fetching
-- [Framer Motion](https://www.framer.com/motion/) for animations
-
----
-
-<div align="center">
-
-**Made with ❤️ for MySched Thesis Project**
-
-</div>
+For questions or issues, please open a GitHub issue or contact the development team.

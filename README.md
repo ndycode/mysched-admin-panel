@@ -317,7 +317,8 @@ This project is developed for academic/thesis purposes.
 
 ## 👥 Authors
 
-**Neil Daquioag** — Developer
+**Neil Daquioag** — Developer  
+**Raymond Zabiaga** — Researcher
 
 ---
 

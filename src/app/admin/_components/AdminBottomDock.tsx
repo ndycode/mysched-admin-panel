@@ -1,12 +1,21 @@
 'use client'
-'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LogOut, Settings } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-import { NAV_ITEMS } from './AdminSidebarNav'
+import { NAV_SECTIONS } from './AdminSidebarNav'
+
+// Extract nav items from sections for dock
+const NAV_ITEMS = NAV_SECTIONS.flatMap(section => section.items)
+
+type NavItem = {
+    href: string
+    label: string
+    icon: React.ElementType
+    badge?: string | number
+}
 
 function cn(...classes: Array<string | false | undefined>) {
     return classes.filter(Boolean).join(' ')
@@ -29,7 +38,7 @@ export function AdminBottomDock() {
             aria-label="Admin dock"
         >
             <div className="flex items-center gap-2 rounded-[24px] border border-border bg-background/80 px-4 py-3 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] backdrop-blur-xl">
-                {NAV_ITEMS.map((item) => {
+                {NAV_ITEMS.map((item: NavItem) => {
                     const Icon = item.icon
                     const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
 

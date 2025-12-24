@@ -78,13 +78,11 @@ import {
 } from '@/lib/days'
 import { type SchedulePreviewRow } from '@/lib/schedule-import'
 import { ImportClassesDialog } from '../_components/dialogs/ImportClassesDialog'
-import { AddClassDialog } from '../_components/dialogs/AddClassDialog'
-import { EditClassDialog } from '../_components/dialogs/EditClassDialog'
+import { ClassFormDialog } from '../_components/dialogs/ClassFormDialog'
 import { ViewClassDialog } from '../_components/dialogs/ViewClassDialog'
 import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog'
 import { inputClasses } from '@/components/ui/Input'
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
+import { PAGE_SIZE_OPTIONS, type PageSize } from '@/lib/constants'
 
 type ClassStatus = 'active' | 'inactive' | 'archived'
 
@@ -1199,16 +1197,18 @@ export default function ClassesPage() {
           instructors={instructors}
           onImported={handleImportComplete}
         />
-        <AddClassDialog
+        <ClassFormDialog
+          mode="add"
           open={addOpen}
           onOpenChange={setAddOpen}
-          onCreated={handleClassCreated}
+          onComplete={handleClassCreated}
         />
-        <EditClassDialog
-          open={editDialogOpen}
+        <ClassFormDialog
+          mode="edit"
           classData={editingClass}
+          open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
-          onUpdated={handleClassUpdated}
+          onComplete={handleClassUpdated}
         />
         <ViewClassDialog
           open={viewDialogOpen}

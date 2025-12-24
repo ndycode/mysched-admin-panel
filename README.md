@@ -63,18 +63,21 @@ The app runs on [http://localhost:3000](http://localhost:3000). Supabase credent
 
 ## Testing
 
-Vitest powers the test suite covering API routes, login flows, UI primitives, and client hooks.
+Vitest powers the test suite with **808+ tests across 96 test files** covering API routes, login flows, UI primitives, and client hooks.
 
 ```bash
-npm test -- --run
+npm test -- --run          # run all tests
+npm run test:ci            # run with coverage enforcement
 ```
 
 Key coverage areas:
-- API routes for classes, sections, users (including CRUD), settings, and audit log behaviour.
-- Admin gatekeeping (login redirect + admin-only layout guard).
-- Toast notifications, shared UI primitives, and client hooks (e.g., `useLocalStorage`).
-- Audit payload sanitisation (passwords/tokens never logged).
-- Supabase error helpers that convert 404s into consistent HTTP responses.
+- **API Routes**: classes, sections, users, semesters, settings, audit log, notifications, geo, edge-info, env-status, status endpoints
+- **Security**: Admin gatekeeping, CSRF protection, rate limiting, audit payload sanitisation (passwords/tokens never logged)
+- **Auth Flows**: Login redirect, admin-only layout guard, middleware protection
+- **UI Components**: Toast notifications, shared UI primitives, dialogs, tables, buttons
+- **Hooks**: `useLocalStorage`, `usePageSize`, `useSmoothProgress`, filter persistence
+- **Utilities**: Supabase error helpers, schedule import parsing, settings schemas, OCR module schemas
+- **Coverage Thresholds**: 60% minimum for lines/functions/branches/statements
 
 ## Formatting
 

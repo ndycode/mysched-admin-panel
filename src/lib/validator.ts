@@ -16,7 +16,18 @@ export const ClassCreateSchema = z.object({
   units: z.coerce.number().int().min(0).max(12).nullable().optional(),
   room: z.string().trim().max(40).nullable().optional(),
   instructor: z.string().trim().max(80).nullable().optional(),
-});
+}).refine(
+  (data) => {
+    // Allow if either time is missing (will fail regex validation anyway)
+    if (!data.start || !data.end) return true
+    // Compare times as strings (HH:MM format is lexicographically orderable)
+    return data.start < data.end
+  },
+  {
+    message: 'End time must be after start time',
+    path: ['end'],
+  }
+);
 export const ClassPatchSchema = ClassCreateSchema.partial().refine(
   (d) => Object.keys(d).length > 0,
   { message: 'Nothing to update' }

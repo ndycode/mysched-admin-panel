@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ReactLenis } from 'lenis/react'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -37,6 +37,7 @@ import {
   StatsCard,
   StatusPill,
 } from '../_components/design-system'
+import { ActiveFiltersPills } from '../_components/ActiveFiltersPills'
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/Dialog'
 import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog'
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -82,7 +83,7 @@ const TERM_LABELS: Record<number, string> = {
   3: 'Summer',
 }
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
+import { PAGE_SIZE_OPTIONS, type PageSize } from '@/lib/constants'
 
 export default function SemestersPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
@@ -154,6 +155,14 @@ export default function SemestersPage() {
     queryClient.invalidateQueries({ queryKey: ['semesters'] })
     setStatsPulse(prev => prev + 1)
   }, [queryClient])
+
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter])
+
+  useEffect(() => {
+    setPage(prev => Math.min(prev, totalPages))
+  }, [totalPages])
 
   const handleSave = useCallback(
     async (draft: SemesterDraft, existingId?: number) => {
@@ -290,6 +299,17 @@ export default function SemestersPage() {
           variant="primary"
           className="w-full justify-center"
         />
+        <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={refresh}
+          disabled={isFetching}
+          isLoading={reloadSpinning}
+          loadingLabel="Reloading..."
+          variant="secondary"
+          spinner="framer"
+          className="w-full justify-center"
+        />
       </div>
     </>
   )
@@ -301,7 +321,7 @@ export default function SemestersPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Semesters</h1>
-            <p className="text-muted-foreground">Manage academic terms and semesters.</p>
+            <p className="text-muted-foreground">Manage academic terms, active windows, and important dates.</p>
           </div>
           {headerActions}
         </div>
@@ -318,7 +338,7 @@ export default function SemestersPage() {
             />
             <StatsCard
               icon={Check}
-              label="Active"
+              label="Current Active"
               value={activeSemester?.name ?? 'None'}
               className="shadow-sm border-border"
               animateKey={statsPulse}
@@ -345,8 +365,15 @@ export default function SemestersPage() {
               <div className="mb-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</h3>
                 <h2 className="text-lg font-bold text-foreground">Semester filters</h2>
-                <p className="text-sm text-muted-foreground">Filter by status to find semesters.</p>
+                <p className="text-sm text-muted-foreground">Filter by status to find semesters quickly.</p>
               </div>
+              <ActiveFiltersPills
+                activeFilters={statusFilter === 'all' ? [] : [statusFilter === 'active' ? 'Status: Active' : 'Status: Inactive']}
+                onClearFilters={() => {
+                  setStatusFilter('all')
+                  setPage(1)
+                }}
+              />
               <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center lg:flex-row lg:items-center">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -511,17 +538,17 @@ export default function SemestersPage() {
                       </div>
                     </td>
                     <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-                      {row.term ? TERM_LABELS[row.term] : '—'}
+                      {row.term ? TERM_LABELS[row.term] : '-'}
                     </td>
                     <td className="w-40 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
-                      {row.academic_year || '—'}
+                      {row.academic_year || '-'}
                     </td>
                     <td className="w-56 whitespace-nowrap px-3 py-2.5 text-sm text-muted-foreground sm:px-4">
                       {row.start_date && row.end_date
-                        ? `${formatDate(row.start_date)} – ${formatDate(row.end_date)}`
+                        ? `${formatDate(row.start_date)} - ${formatDate(row.end_date)}`
                         : row.start_date
                           ? `From ${formatDate(row.start_date)}`
-                          : '—'}
+                          : '-'}
                     </td>
                     <td className="w-32 whitespace-nowrap px-3 py-2.5 sm:px-4">
                       {row.is_active ? (

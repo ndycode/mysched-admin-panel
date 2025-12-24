@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarClock, Pencil, Plus, RefreshCw, Search, Trash2, Users, ChevronsUpDown, ArrowUp, ArrowDown, ChevronDown, X, Check, MoreVertical, Wand2, Building2 } from 'lucide-react'
+import { CalendarClock, Pencil, Plus, RefreshCw, Search, Trash2, Users, Mail, ChevronDown, X, Check, MoreVertical, Wand2, Building2 } from 'lucide-react'
 
 import { AvatarThumbnail } from '@/components/AvatarThumbnail'
 import { Button } from '@/components/ui'
@@ -31,8 +31,7 @@ import { buttonClasses } from '@/components/ui/Button'
 import { inputClasses } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
 import { formatDate } from '@/lib/date-utils'
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+import { PAGE_SIZE_OPTIONS } from '@/lib/constants'
 
 type Instructor = {
   id: string
@@ -242,6 +241,7 @@ export default function InstructorsPage() {
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['instructors'] })
     queryClient.invalidateQueries({ queryKey: ['instructors', 'options'] })
+    setStatsPulse(p => p + 1)
   }, [queryClient])
 
   const handleRetryInstructors = useCallback(() => {
@@ -376,36 +376,71 @@ export default function InstructorsPage() {
     }
   }, [selectedIds, invalidate, toast])
 
+  const handleManualRefresh = useCallback(() => {
+    invalidate()
+  }, [invalidate])
+
   const headerActions = (
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-      <AnimatedActionBtn
-        icon={RefreshCw}
-        label="Reload"
-        onClick={() => {
-          setStatsPulse(p => p + 1)
-          void instructorsQuery.refetch()
-        }}
-        isLoading={reloadSpinning}
-        loadingLabel="Reloading..."
-        variant="secondary"
-        spinner="framer"
-        className="hidden sm:inline-flex"
-      />
-      <AnimatedActionBtn
-        icon={Wand2}
-        label="Auto-assign Departments"
-        onClick={() => void handleAutoAssign()}
-        isLoading={isAutoAssigning}
-        loadingLabel="Assigning..."
-        variant="secondary"
-      />
-      <AnimatedActionBtn
-        icon={Plus}
-        label="Add Instructor"
-        onClick={() => setAddOpen(true)}
-        variant="primary"
-      />
-    </div>
+    <>
+      {/* Desktop / Tablet layout */}
+      <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={handleManualRefresh}
+          disabled={isFetching}
+          isLoading={reloadSpinning}
+          loadingLabel="Reloading..."
+          variant="secondary"
+          spinner="framer"
+        />
+        <AnimatedActionBtn
+          icon={Wand2}
+          label="Auto-assign Departments"
+          onClick={() => void handleAutoAssign()}
+          isLoading={isAutoAssigning}
+          loadingLabel="Assigning..."
+          variant="secondary"
+        />
+        <AnimatedActionBtn
+          icon={Plus}
+          label="Add Instructor"
+          onClick={() => setAddOpen(true)}
+          variant="primary"
+        />
+      </div>
+
+      {/* Mobile layout */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        <AnimatedActionBtn
+          icon={Plus}
+          label="Add Instructor"
+          onClick={() => setAddOpen(true)}
+          variant="primary"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
+          icon={Wand2}
+          label="Auto-assign Departments"
+          onClick={() => void handleAutoAssign()}
+          isLoading={isAutoAssigning}
+          loadingLabel="Assigning..."
+          variant="secondary"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={handleManualRefresh}
+          disabled={isFetching}
+          isLoading={reloadSpinning}
+          loadingLabel="Reloading..."
+          variant="secondary"
+          spinner="framer"
+          className="w-full justify-center"
+        />
+      </div>
+    </>
   )
 
   const renderRow = useCallback((row: Instructor) => {
@@ -462,6 +497,22 @@ export default function InstructorsPage() {
     )
   }, [handleDelete, selectedIds, toggleSelect])
 
+  const stats = useMemo(() => {
+    const withEmails = instructors.filter(i => i.email?.trim()).length
+    const withDepartments = instructors.filter(i => i.department?.trim()).length
+    const departmentsCovered = new Set(
+      instructors
+        .map(i => i.department?.trim())
+        .filter((d): d is string => Boolean(d)),
+    ).size
+    return {
+      total: count,
+      withEmails,
+      withDepartments,
+      departmentsCovered,
+    }
+  }, [instructors, count])
+
   return (
     <div className="min-h-screen bg-background p-6 lg:p-10">
       <div className="mx-auto max-w-screen-xl space-y-8">
@@ -469,19 +520,51 @@ export default function InstructorsPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Instructors</h1>
-            <p className="text-muted-foreground">Manage instructor roles and schedule assignments.</p>
+            <p className="text-muted-foreground">Manage instructor profiles, departments, and schedule assignments.</p>
           </div>
           {headerActions}
         </div>
 
         <div className="space-y-6">
+          {/* Stats Grid (mobile first) */}
+          <div className="order-1 grid grid-cols-2 gap-3 sm:order-none sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+            <StatsCard
+              icon={Users}
+              label="Total Instructors"
+              value={stats.total.toLocaleString()}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={Building2}
+              label="Departments Covered"
+              value={stats.departmentsCovered.toLocaleString()}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={CalendarClock}
+              label="With Departments"
+              value={stats.withDepartments.toLocaleString()}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={Mail}
+              label="With Emails"
+              value={stats.withEmails.toLocaleString()}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+          </div>
+
           {/* Filters */}
-          <CardSurface className="space-y-4 shadow-sm border-border hover:border-border/80 transition-colors">
+          <CardSurface className="order-2 space-y-4 shadow-sm border-border hover:border-border/80 transition-colors sm:order-none">
             <div className="p-1">
               <div className="mb-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</h3>
                 <h2 className="text-lg font-bold text-foreground">Instructor filters</h2>
-                <p className="text-sm text-muted-foreground">Search and filter instructors.</p>
+                <p className="text-sm text-muted-foreground">Search and filter instructors by name or department.</p>
               </div>
               <ActiveFiltersPills
                 activeFilters={activeFilters}
@@ -495,7 +578,7 @@ export default function InstructorsPage() {
                   setPage(1)
                 }}
               />
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+              <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center lg:flex-row lg:items-center">
                 <div className="relative w-full lg:max-w-md">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                   <input
@@ -506,7 +589,7 @@ export default function InstructorsPage() {
                     className={inputClasses({ className: 'pl-10 pr-4' })}
                   />
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <AnimatedActionBtn
@@ -514,17 +597,20 @@ export default function InstructorsPage() {
                         icon={ChevronDown}
                         variant="secondary"
                         className="justify-between gap-2 px-4"
+                        aria-label="Choose department filter"
                       />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56">
-                      <DropdownMenuItem onClick={() => setDepartmentFilter('all')}>
-                        All Departments
-                      </DropdownMenuItem>
-                      {departmentOptions.map(option => (
-                        <DropdownMenuItem key={option} onClick={() => setDepartmentFilter(option)}>
-                          {option}
+                    <DropdownMenuContent align="start" className="w-56 p-0">
+                      <div className="max-h-72 overflow-y-auto p-1">
+                        <DropdownMenuItem onClick={() => setDepartmentFilter('all')}>
+                          All Departments
                         </DropdownMenuItem>
-                      ))}
+                        {departmentOptions.map(option => (
+                          <DropdownMenuItem key={option} onClick={() => setDepartmentFilter(option)}>
+                            {option}
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -548,17 +634,6 @@ export default function InstructorsPage() {
               </Button>
             </CardSurface>
           ) : null}
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
-            <StatsCard
-              icon={Users}
-              label="Total Instructors"
-              value={count.toLocaleString()}
-              className="shadow-sm border-border"
-              animateKey={statsPulse}
-            />
-          </div>
 
           <div className="relative">
             {instructorsRefreshing ? (

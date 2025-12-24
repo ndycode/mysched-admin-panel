@@ -46,9 +46,9 @@ export function AdminTable({
                 </tr>
               ) : (
                 Array.from({ length: 11 }).map((_, i) => (
-                  <tr key={i} className="h-13">
+                  <tr key={`skeleton-row-${i}`} className="h-13">
                     {Array.from({ length: colSpan }).map((_, j) => (
-                      <td key={j} className="px-3 py-2.5 sm:px-4">
+                      <td key={`skeleton-cell-${i}-${j}`} className="px-3 py-2.5 sm:px-4">
                         <Skeleton className="h-4 w-full" />
                       </td>
                     ))}

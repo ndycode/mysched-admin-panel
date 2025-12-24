@@ -52,3 +52,15 @@ export const tapScale = {
     scale: 0.98,
     transition: isDev ? { duration: 0.05 } : spring,
 }
+
+// Standardized animation durations
+export const DURATION = {
+    /** Fast UI feedback (hover, tap) */
+    FAST: 0.15,
+    /** Standard transitions (fade, slide) */
+    STANDARD: 0.25,
+    /** Counter/number animations */
+    COUNTER: 0.6,
+    /** Emphasized animations (charts, onboarding) */
+    SLOW: 0.8,
+} as const

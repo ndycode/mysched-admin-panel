@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 type PageSizeSelectorProps = {
     pageSize: number
     onPageSizeChange: (size: number) => void
-    options?: number[]
+    options?: readonly number[]
 }
 
 export function PageSizeSelector({

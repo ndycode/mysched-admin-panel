@@ -18,6 +18,7 @@ import { CardSurface, StatsCard, StatusPill } from '../_components/design-system
 import { AnimatedTabs } from '../_components/AnimatedTabs'
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { ActiveFiltersPills } from '../_components/ActiveFiltersPills'
 
 
 type IssueReport = {
@@ -72,6 +73,7 @@ export default function IssueReportsPage() {
     const [statusFilter, setStatusFilter] = useState('all')
     const [updatingId, setUpdatingId] = useState<number | null>(null)
     const [selectedReport, setSelectedReport] = useState<IssueReport | null>(null)
+    const [statsPulse, setStatsPulse] = useState(0)
 
     const loadReports = useCallback(async () => {
         setLoading(true)
@@ -79,6 +81,7 @@ export default function IssueReportsPage() {
         try {
             const data = await api<IssueReport[]>('/api/issue-reports')
             setReports(data)
+            setStatsPulse(p => p + 1)
         } catch (err) {
             setError((err as Error).message || 'Failed to load reports')
         } finally {
@@ -113,6 +116,7 @@ export default function IssueReportsPage() {
                 prev.map(r => (r.id === id ? { ...r, status } : r))
             )
             toast({ kind: 'success', msg: `Report marked as ${status}` })
+            setStatsPulse(p => p + 1)
         } catch (err) {
             toast({ kind: 'error', msg: (err as Error).message || 'Failed to update' })
         } finally {
@@ -144,53 +148,84 @@ export default function IssueReportsPage() {
                             Review and manage user-submitted class schedule issues.
                         </p>
                     </div>
-                    <AnimatedActionBtn
-                        icon={RefreshCw}
-                        label="Reload"
-                        onClick={loadReports}
-                        isLoading={loading}
-                        loadingLabel="Loading..."
-                        variant="secondary"
-                        spinner="framer"
-                    />
+                    <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                        <AnimatedActionBtn
+                            icon={RefreshCw}
+                            label="Reload"
+                            onClick={loadReports}
+                            isLoading={loading}
+                            loadingLabel="Loading..."
+                            variant="secondary"
+                            spinner="framer"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2 sm:hidden">
+                        <AnimatedActionBtn
+                            icon={RefreshCw}
+                            label="Reload"
+                            onClick={loadReports}
+                            isLoading={loading}
+                            loadingLabel="Loading..."
+                            variant="secondary"
+                            spinner="framer"
+                            className="w-full justify-center"
+                        />
+                    </div>
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-6">
+                <div className="order-1 grid grid-cols-2 gap-3 sm:order-none sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
                     <StatsCard
                         icon={AlertTriangle}
                         label="Total Reports"
                         value={String(stats.total)}
                         className="shadow-sm border-border"
+                        animateKey={statsPulse}
                     />
                     <StatsCard
                         icon={Clock}
                         label="Pending"
                         value={String(stats.pending)}
                         className="shadow-sm border-border"
+                        animateKey={statsPulse}
                     />
                     <StatsCard
                         icon={CheckCircle}
                         label="Resolved"
                         value={String(stats.resolved)}
                         className="shadow-sm border-border"
+                        animateKey={statsPulse}
                     />
                     <StatsCard
                         icon={XCircle}
                         label="Ignored"
                         value={String(stats.ignored)}
                         className="shadow-sm border-border"
+                        animateKey={statsPulse}
                     />
                 </div>
 
                 {/* Filters */}
-                <CardSurface className="p-4 shadow-sm border-border">
-                    <AnimatedTabs
-                        tabs={STATUS_TABS}
-                        activeTab={statusFilter}
-                        onTabChange={setStatusFilter}
-                        layoutId="issue-status-tabs"
-                    />
+                <CardSurface className="order-2 space-y-4 shadow-sm border-border hover:border-border/80 transition-colors sm:order-none p-4">
+                    <div className="p-1">
+                        <div className="mb-4">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</h3>
+                            <h2 className="text-lg font-bold text-foreground">Issue filters</h2>
+                            <p className="text-sm text-muted-foreground">Filter by status to focus on what needs attention.</p>
+                        </div>
+                        <ActiveFiltersPills
+                            activeFilters={statusFilter === 'all' ? [] : [`Status: ${statusFilter === 'new' ? 'Pending' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`]}
+                            onClearFilters={() => setStatusFilter('all')}
+                        />
+                        <div className="mt-3">
+                            <AnimatedTabs
+                                tabs={STATUS_TABS}
+                                activeTab={statusFilter}
+                                onTabChange={setStatusFilter}
+                                layoutId="issue-status-tabs"
+                            />
+                        </div>
+                    </div>
                 </CardSurface>
 
                 {/* Reports List */}

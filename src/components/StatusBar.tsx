@@ -46,26 +46,6 @@ export default function StatusBar() {
       <div className="status-bar-marquee whitespace-nowrap">
         {text} &nbsp;&nbsp;&nbsp;&nbsp; {text}
       </div>
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @keyframes status-bar-marquee {
-              0% {
-                transform: translateX(0);
-              }
-              100% {
-                transform: translateX(-50%);
-              }
-            }
-
-            .status-bar-marquee {
-              display: inline-block;
-              min-width: 200%;
-              animation: status-bar-marquee 22s linear infinite;
-            }
-          `,
-        }}
-      />
     </div>
   )
 }

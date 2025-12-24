@@ -42,6 +42,11 @@ export function mapSectionRow(row: SectionApiRow): SectionRow {
 
 export function computeStats(rows: SectionRow[]): SectionStats {
     const totalSections = rows.length
+    const totalClassCount = rows.reduce((sum, row) => {
+        const count = typeof row.classCount === 'number' ? row.classCount : 0
+        return Number.isFinite(count) ? sum + count : sum
+    }, 0)
+    const avgClasses = totalSections > 0 ? totalClassCount / totalSections : null
     const now = new Date()
     const addedThisMonth = rows.filter(row => {
         if (!row.createdAt) return false
@@ -58,5 +63,10 @@ export function computeStats(rows: SectionRow[]): SectionStats {
         return latest
     }, null)
 
-    return { totalSections, addedThisMonth, lastUpdated: lastUpdatedDate ? lastUpdatedDate.toISOString() : null }
+    return {
+        totalSections,
+        addedThisMonth,
+        avgClasses: Number.isFinite(avgClasses) ? avgClasses : null,
+        lastUpdated: lastUpdatedDate ? lastUpdatedDate.toISOString() : null,
+    }
 }

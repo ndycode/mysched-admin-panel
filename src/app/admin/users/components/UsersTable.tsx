@@ -186,10 +186,10 @@ function EmailDisplay({ email }: { email: string | null }) {
 function RoleBadge({ role }: { role: UserRole }) {
   const tone =
     role === 'admin'
-      ? 'border-purple-200 bg-purple-50 text-purple-700'
+      ? 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300'
       : role === 'instructor'
-        ? 'border-sky-200 bg-sky-50 text-sky-700'
-        : 'border-slate-200 bg-slate-50 text-slate-700'
+        ? 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300'
+        : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
 
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize shadow-sm ${tone}`}>

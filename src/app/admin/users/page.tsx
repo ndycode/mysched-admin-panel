@@ -1,5 +1,4 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -16,12 +15,8 @@ import {
   UserPlus,
   Users,
   ChevronDown,
-  ChevronsUpDown,
-  ArrowUp,
-  ArrowDown,
   MoreVertical,
   X,
-  Building2,
 } from 'lucide-react'
 
 import { AvatarThumbnail } from '@/components/AvatarThumbnail'
@@ -38,7 +33,6 @@ import { CardSurface, StatsCard, StatusPill, ActionMenuTrigger } from '../_compo
 import { AdminTable } from '../_components/AdminTable'
 import { SortableTableHeader } from '../_components/SortableTableHeader'
 import { ActiveFiltersPills } from '../_components/ActiveFiltersPills'
-import { TableActions } from '../_components/TableActions'
 
 import { AddUserDialog, EditUserDialog, ManagePermissionsDialog, ViewUserDialog } from './components/dialogs'
 import { useUsersDirectory } from './useUsersDirectory'
@@ -52,10 +46,10 @@ import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDial
 function RoleBadge({ role }: { role: UserRole }) {
   const tone =
     role === 'admin'
-      ? 'border-purple-200 bg-purple-50 text-purple-700'
+      ? 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300'
       : role === 'instructor'
-        ? 'border-sky-200 bg-sky-50 text-sky-700'
-        : 'border-slate-200 bg-slate-50 text-slate-700'
+        ? 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300'
+        : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
 
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize shadow-sm ${tone}`}>
@@ -407,6 +401,7 @@ export default function UsersPage() {
   const tableLoading = isFetching
   const handleRetryUsers = useCallback(() => {
     void refetch()
+    setStatsPulse(p => p + 1)
   }, [refetch])
 
   const renderRow = useCallback(
@@ -493,36 +488,73 @@ export default function UsersPage() {
   )
 
   const headerActions = (
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-      <AnimatedActionBtn
-        icon={Download}
-        label={exporting ? 'Preparing...' : 'Export'}
-        onClick={() => {
-          void handleExport()
-        }}
-        isLoading={exporting}
-        loadingLabel="Preparing..."
-      />
-      <AnimatedActionBtn
-        icon={RefreshCw}
-        label="Reload"
-        onClick={() => {
-          setStatsPulse(p => p + 1)
-          void refetch()
-        }}
-        isLoading={isFetching}
-        loadingLabel="Reloading..."
-        variant="secondary"
-        spinner="framer"
-        className="hidden sm:inline-flex"
-      />
-      <AnimatedActionBtn
-        icon={UserPlus}
-        label="Add User"
-        onClick={() => setAddOpen(true)}
-        variant="primary"
-      />
-    </div>
+    <>
+      {/* Desktop / Tablet */}
+      <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <AnimatedActionBtn
+          icon={Download}
+          label="Export"
+          onClick={() => {
+            void handleExport()
+          }}
+          isLoading={exporting}
+          loadingLabel="Preparing..."
+          variant="secondary"
+        />
+        <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={() => {
+            setStatsPulse(p => p + 1)
+            void refetch()
+          }}
+          isLoading={isFetching}
+          loadingLabel="Reloading..."
+          variant="secondary"
+          spinner="framer"
+        />
+        <AnimatedActionBtn
+          icon={UserPlus}
+          label="Add User"
+          onClick={() => setAddOpen(true)}
+          variant="primary"
+        />
+      </div>
+      {/* Mobile */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        <AnimatedActionBtn
+          icon={UserPlus}
+          label="Add User"
+          onClick={() => setAddOpen(true)}
+          variant="primary"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
+          icon={Download}
+          label="Export"
+          onClick={() => {
+            void handleExport()
+          }}
+          isLoading={exporting}
+          loadingLabel="Preparing..."
+          variant="secondary"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={() => {
+            setStatsPulse(p => p + 1)
+            void refetch()
+          }}
+          isLoading={isFetching}
+          loadingLabel="Reloading..."
+          variant="secondary"
+          spinner="framer"
+          className="w-full justify-center"
+        />
+      </div>
+    </>
   )
 
   return (
@@ -538,117 +570,8 @@ export default function UsersPage() {
         </div>
 
         <div className="space-y-6">
-          {/* Filters */}
-          <CardSurface className="space-y-4 shadow-sm border-border hover:border-border/80 transition-colors">
-            <div className="p-1">
-              <div className="mb-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</h3>
-                <h2 className="text-lg font-bold text-foreground">User filters</h2>
-                <p className="text-sm text-muted-foreground">Search and filter by status or role.</p>
-              </div>
-              <ActiveFiltersPills
-                activeFilters={activeFilters}
-                onClearFilters={() => {
-                  setSearch('')
-                  setStatusFilter('all')
-                  setRoleFilter('all')
-                  setSort('recent')
-                  setPage(1)
-                }}
-              />
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-                <div className="relative w-full lg:max-w-md">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                  <input
-                    type="search"
-                    value={search}
-                    onChange={event => setSearch(event.target.value)}
-                    placeholder="Search users..."
-                    className={inputClasses({ className: 'pl-10 pr-4' })}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <AnimatedActionBtn
-                        label={
-                          statusFilter === 'all'
-                            ? 'All Statuses'
-                            : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)
-                        }
-                        icon={ChevronDown}
-                        variant="secondary"
-                        className="justify-between gap-2 px-4"
-                      />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-44">
-                      <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-                        All Statuses
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setStatusFilter('active')}>
-                        Active
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
-                        Inactive
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setStatusFilter('suspended')}>
-                        Pending
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <AnimatedActionBtn
-                        label={
-                          roleFilter === 'all'
-                            ? 'All Roles'
-                            : roleFilter.charAt(0).toUpperCase() + roleFilter.slice(1)
-                        }
-                        icon={ChevronDown}
-                        variant="secondary"
-                        className="justify-between gap-2 px-4"
-                      />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-44">
-                      <DropdownMenuItem onClick={() => setRoleFilter('all')}>
-                        All Roles
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setRoleFilter('admin')}>
-                        Admin
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setRoleFilter('instructor')}>
-                        Instructor
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setRoleFilter('student')}>
-                        Student
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </div>
-          </CardSurface>
-
-          {error ? (
-            <CardSurface className="flex flex-wrap items-start justify-between gap-3 border-destructive/30 bg-destructive/5 text-destructive">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold">Failed to load users</p>
-                <p className="text-sm text-destructive/90">{error}</p>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleRetryUsers}
-                className="border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/15"
-              >
-                Retry
-              </Button>
-            </CardSurface>
-          ) : null}
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+          {/* Stats Grid (mobile first) */}
+          <div className="order-1 grid grid-cols-2 gap-3 sm:order-none sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
             <StatsCard
               icon={Users}
               label="Total Users"
@@ -679,6 +602,122 @@ export default function UsersPage() {
               animateKey={statsPulse}
             />
           </div>
+
+          {/* Filters */}
+          <CardSurface className="order-2 space-y-4 shadow-sm border-border hover:border-border/80 transition-colors sm:order-none">
+            <div className="p-1">
+              <div className="mb-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</h3>
+                <h2 className="text-lg font-bold text-foreground">User filters</h2>
+                <p className="text-sm text-muted-foreground">Search and filter users by status or role.</p>
+              </div>
+              <ActiveFiltersPills
+                activeFilters={activeFilters}
+                onClearFilters={() => {
+                  setSearch('')
+                  setStatusFilter('all')
+                  setRoleFilter('all')
+                  setSort('recent')
+                  setUserSorted(false)
+                  setPage(1)
+                }}
+              />
+              <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center lg:flex-row lg:items-center">
+                <div className="relative w-full lg:max-w-md">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={event => setSearch(event.target.value)}
+                    placeholder="Search users..."
+                    className={inputClasses({ className: 'pl-10 pr-4' })}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <AnimatedActionBtn
+                        label={
+                          statusFilter === 'all'
+                            ? 'All Statuses'
+                            : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)
+                        }
+                        icon={ChevronDown}
+                        variant="secondary"
+                        className="justify-between gap-2 px-4"
+                        aria-label="Choose status filter"
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-44 p-0">
+                      <div className="max-h-72 overflow-y-auto p-1">
+                        <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                          All Statuses
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setStatusFilter('active')}>
+                          Active
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
+                          Inactive
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setStatusFilter('suspended')}>
+                          Pending
+                        </DropdownMenuItem>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <AnimatedActionBtn
+                        label={
+                          roleFilter === 'all'
+                            ? 'All Roles'
+                            : roleFilter.charAt(0).toUpperCase() + roleFilter.slice(1)
+                        }
+                        icon={ChevronDown}
+                        variant="secondary"
+                        className="justify-between gap-2 px-4"
+                        aria-label="Choose role filter"
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-44 p-0">
+                      <div className="max-h-72 overflow-y-auto p-1">
+                        <DropdownMenuItem onClick={() => setRoleFilter('all')}>
+                          All Roles
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setRoleFilter('admin')}>
+                          Admin
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setRoleFilter('instructor')}>
+                          Instructor
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setRoleFilter('student')}>
+                          Student
+                        </DropdownMenuItem>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </div>
+          </CardSurface>
+
+          {error ? (
+            <CardSurface className="flex flex-wrap items-start justify-between gap-3 border-destructive/30 bg-destructive/5 text-destructive">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">Failed to load users</p>
+                <p className="text-sm text-destructive/90">{error}</p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleRetryUsers}
+                className="border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/15"
+              >
+                Retry
+              </Button>
+            </CardSurface>
+          ) : null}
         </div>
         <div className="relative">
           {refreshing ? (

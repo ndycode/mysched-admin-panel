@@ -366,8 +366,8 @@ describe('/api/users route', () => {
       {
         full_name: 'New User',
         email: 'new@example.com',
-        password: 'password123',
-        password: 'password123',
+        password: 'TestPass123!',
+        password: 'TestPass123!',
       },
       { origin: 'http://localhost', host: 'localhost' },
     )
@@ -387,7 +387,7 @@ describe('/api/users route', () => {
     const req = makeReq(
       'POST',
       'http://localhost/api/users',
-      { full_name: 'Existing', email: 'exists@example.com', password: 'password123' },
+      { full_name: 'Existing', email: 'exists@example.com', password: 'TestPass123!' },
       { origin: 'http://localhost', host: 'localhost' },
     )
     const res = await route.POST(req as any)
@@ -409,7 +409,7 @@ describe('/api/users/[id] route', () => {
         app_user_id: 84,
         role: 'admin',
         status: 'active',
-        password: 'newpassword123',
+        password: 'NewPass123!',
       },
       { origin: 'http://localhost', host: 'localhost' },
     )

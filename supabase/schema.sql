@@ -64,7 +64,9 @@ CREATE TABLE public.instructors (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   normalized_name text DEFAULT lower(TRIM(BOTH FROM regexp_replace(full_name, '\s+'::text, ' '::text, 'g'::text))),
-  CONSTRAINT instructors_pkey PRIMARY KEY (id)
+  user_id uuid UNIQUE,
+  CONSTRAINT instructors_pkey PRIMARY KEY (id),
+  CONSTRAINT instructors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.profiles (
   id uuid NOT NULL,
@@ -91,6 +93,12 @@ CREATE TABLE public.reminders (
   CONSTRAINT reminders_pkey PRIMARY KEY (id),
   CONSTRAINT reminders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.reward_emails (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone DEFAULT now(),
+  email text NOT NULL,
+  CONSTRAINT reward_emails_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.sections (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   code text NOT NULL,
@@ -113,6 +121,36 @@ CREATE TABLE public.semesters (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT semesters_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.study_sessions (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  session_type text NOT NULL CHECK (session_type = ANY (ARRAY['work'::text, 'short_break'::text, 'long_break'::text])),
+  duration_minutes integer NOT NULL CHECK (duration_minutes > 0),
+  started_at timestamp with time zone NOT NULL,
+  completed_at timestamp with time zone NOT NULL DEFAULT now(),
+  class_id bigint,
+  class_title text,
+  skipped boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT study_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT study_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.survey_responses (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone DEFAULT now(),
+  respondent_name text NOT NULL,
+  responses jsonb NOT NULL,
+  user_agent text,
+  completed_at timestamp with time zone DEFAULT now(),
+  respondent_section text,
+  CONSTRAINT survey_responses_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.survey_settings (
+  id integer NOT NULL DEFAULT 1 CHECK (id = 1),
+  is_reward_active boolean DEFAULT true,
+  reward_limit integer DEFAULT 20,
+  CONSTRAINT survey_settings_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.user_class_overrides (
   user_id uuid NOT NULL,

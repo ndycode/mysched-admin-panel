@@ -13,8 +13,15 @@ type CallbackPayload = {
   } | null
 }
 
+// Maximum reasonable JWT token size (8KB)
+const MAX_TOKEN_LENGTH = 8192
+
 function badRequest(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status })
+}
+
+function isValidToken(token: unknown): token is string {
+  return typeof token === 'string' && token.length > 0 && token.length <= MAX_TOKEN_LENGTH
 }
 
 export async function POST(req: Request) {
@@ -53,8 +60,8 @@ export async function POST(req: Request) {
   if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     const access = body.session?.access_token
     const refresh = body.session?.refresh_token
-    if (!access || !refresh) {
-      return badRequest('Session tokens missing from payload.')
+    if (!isValidToken(access) || !isValidToken(refresh)) {
+      return badRequest('Session tokens missing or invalid.')
     }
     set('sb-access-token', access, 60 * 60 * 24 * 7)
     set('sb-refresh-token', refresh, 60 * 60 * 24 * 30)

@@ -26,5 +26,6 @@ export type SectionRow = {
 export type SectionStats = {
   totalSections: number
   addedThisMonth: number
+  avgClasses: number | null
   lastUpdated: string | null
 }

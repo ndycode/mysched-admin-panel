@@ -42,11 +42,11 @@ export default function SignOutButton({
       // Best-effort client sign-out
       await sb?.auth.signOut().catch(() => { })
 
-      // Clear server cookies
-      await fetch('/auth/callback', {
+      // Clear server cookies via POST logout (CSRF-protected)
+      await fetch('/logout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: 'SIGNED_OUT', session: null }),
+        credentials: 'same-origin',
       }).catch(() => { })
 
       // Navigate and refresh server state. Hard reload fallback prevents SPA stalls.

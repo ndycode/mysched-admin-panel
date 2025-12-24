@@ -23,7 +23,7 @@ export function VirtualizedClassList({
 }: VirtualizedClassListProps) {
     return (
         <section className="flex h-full flex-col space-y-3">
-            {loading ? <p className="text-sm text-gray-500">{loadingLabel}</p> : null}
+            {loading ? <p className="text-sm text-muted-foreground">{loadingLabel}</p> : null}
 
             <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
                 {/* Header */}
@@ -44,7 +44,7 @@ export function VirtualizedClassList({
                 {/* List */}
                 <div className="flex-1 bg-card">
                     {isEmpty && !loading ? (
-                        <div className="flex h-40 items-center justify-center text-sm text-gray-500">
+                        <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
                             {emptyMessage}
                         </div>
                     ) : (

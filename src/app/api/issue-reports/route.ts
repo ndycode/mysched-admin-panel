@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sbService } from '@/lib/supabase-service'
+import { requireAdmin } from '@/lib/authz'
+import { assertSameOrigin } from '@/lib/csrf'
+import { throttle } from '@/lib/rate'
+import { getClientIp } from '@/lib/request'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +21,9 @@ type IssueReportRow = {
 
 export async function GET(request: NextRequest) {
     try {
+        await requireAdmin(request)
+        await throttle(getClientIp(request))
+        
         const { searchParams } = new URL(request.url)
         const status = searchParams.get('status')
         const limit = Math.min(Number(searchParams.get('limit')) || 100, 500)
@@ -86,10 +93,18 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
     try {
+        await requireAdmin(request)
+        assertSameOrigin(request)
+        await throttle(getClientIp(request))
+        
         const body = await request.json()
         const { id, status, resolution_note } = body
 
-        if (!id || !status) {
+        if (!id || typeof id !== 'number' || id < 1) {
+            return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+        }
+
+        if (!status) {
             return NextResponse.json({ error: 'Missing id or status' }, { status: 400 })
         }
 

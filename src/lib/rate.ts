@@ -111,6 +111,10 @@ export async function throttle(
   } catch (error) {
     const message = (error as { message?: string } | null)?.message ?? ''
     if (message.toLowerCase().includes('could not find the function')) {
+      // In production, rate limiting must work - don't silently disable
+      if (process.env.NODE_ENV === 'production') {
+        rateLimitFailure('Rate limiting RPC function is missing in production.', error)
+      }
       console.warn('Rate limiting disabled: RPC function missing.')
       return
     }
@@ -124,6 +128,10 @@ export async function throttle(
   if (result.error) {
     const message = (result.error as { message?: string } | null)?.message ?? ''
     if (message.toLowerCase().includes('could not find the function')) {
+      // In production, rate limiting must work - don't silently disable
+      if (process.env.NODE_ENV === 'production') {
+        rateLimitFailure('Rate limiting RPC function is missing in production.', result.error)
+      }
       console.warn('Rate limiting disabled: RPC function missing.')
       return
     }

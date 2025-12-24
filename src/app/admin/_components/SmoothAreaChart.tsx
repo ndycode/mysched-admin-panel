@@ -183,7 +183,7 @@ export function SmoothAreaChart({ data, color = 'var(--primary)', height = 300 }
                                             const color = action === 'insert' ? 'bg-emerald-500' :
                                                 action === 'update' ? 'bg-blue-500' :
                                                     action === 'delete' ? 'bg-red-500' :
-                                                        action === 'error' ? 'bg-orange-500' : 'bg-gray-400'
+                                                        action === 'error' ? 'bg-orange-500' : 'bg-muted-foreground'
 
                                             return (
                                                 <div key={i} className="flex items-center gap-1.5 text-[10px]">

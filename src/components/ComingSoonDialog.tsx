@@ -99,7 +99,7 @@ function ComingSoonDialog({ open, options, onClose }: ComingSoonDialogProps) {
       {bullets.length > 0 ? (
         <ul className="mt-4 space-y-2 text-sm text-[var(--muted-foreground)]">
           {bullets.map((item, index) => (
-            <li key={index} className="flex items-start gap-2">
+            <li key={`highlight-${index}-${item.slice(0, 10)}`} className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[linear-gradient(135deg,#60a5fa,#1f4ed8)]" aria-hidden />
               <span>{item}</span>
             </li>

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 
 import * as route from '../admins/grant-self/route'
 
@@ -8,12 +9,23 @@ const mocks = vi.hoisted(() => ({
   audit: vi.fn(),
   auditError: vi.fn(),
   logErr: vi.fn(() => 'logged error'),
+  assertSameOrigin: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase-server', () => ({ sbServer: mocks.sbServer }))
 vi.mock('@/lib/supabase-service', () => ({ sbService: mocks.sbService }))
 vi.mock('@/lib/audit', () => ({ audit: mocks.audit, auditError: mocks.auditError }))
 vi.mock('@/lib/log', () => ({ logErr: mocks.logErr }))
+vi.mock('@/lib/csrf', () => ({ assertSameOrigin: mocks.assertSameOrigin }))
+
+function createMockRequest(url = 'http://localhost:3000/api/admins/grant-self') {
+  return new NextRequest(url, {
+    method: 'POST',
+    headers: {
+      'origin': 'http://localhost:3000',
+    },
+  })
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -27,12 +39,14 @@ beforeEach(() => {
       upsert: vi.fn(async () => ({ error: null })),
     })),
   })
+  mocks.assertSameOrigin.mockImplementation(() => {}) // Pass by default
   vi.stubEnv('NODE_ENV', 'development')
 })
 
 describe('/api/admins/grant-self', () => {
   it('upserts the current user as an admin in development', async () => {
-    const res = await route.POST()
+    const req = createMockRequest()
+    const res = await route.POST(req)
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.ok).toBe(true)
@@ -42,7 +56,19 @@ describe('/api/admins/grant-self', () => {
 
   it('returns 403 in production', async () => {
     vi.stubEnv('NODE_ENV', 'production')
-    const res = await route.POST()
+    const req = createMockRequest()
+    const res = await route.POST(req)
+    expect(res.status).toBe(403)
+    const data = await res.json()
+    expect(data.error).toBe('Forbidden')
+  })
+
+  it('returns 403 when CSRF check fails', async () => {
+    mocks.assertSameOrigin.mockImplementation(() => {
+      throw new Error('Cross-origin request')
+    })
+    const req = createMockRequest()
+    const res = await route.POST(req)
     expect(res.status).toBe(403)
     const data = await res.json()
     expect(data.error).toBe('Forbidden')
@@ -54,7 +80,8 @@ describe('/api/admins/grant-self', () => {
         upsert: vi.fn(async () => ({ error: { message: 'duplicate' } })),
       })),
     })
-    const res = await route.POST()
+    const req = createMockRequest()
+    const res = await route.POST(req)
     expect(res.status).toBe(500)
     const data = await res.json()
     expect(data.error).toBe('duplicate')

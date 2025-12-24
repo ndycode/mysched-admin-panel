@@ -34,12 +34,12 @@ export function VirtualizedSectionList({
 
     return (
         <section className="flex h-full flex-col space-y-3">
-            {loading ? <p className="text-sm text-gray-500">{loadingLabel}</p> : null}
+            {loading ? <p className="text-sm text-muted-foreground">{loadingLabel}</p> : null}
 
             <div className={containerClasses}>
                 {/* Header */}
                 <div
-                    className={`grid items-center gap-4 border-b border-gray-200 bg-gray-50 px-6 py-3 text-xs font-medium uppercase tracking-wider text-gray-500 ${minWidthClass}`}
+                    className={`grid items-center gap-4 border-b border-border bg-muted px-6 py-3 text-xs font-medium uppercase tracking-wider text-muted-foreground ${minWidthClass}`}
                     style={{ gridTemplateColumns: gridTemplate }}
                 >
                     {columns.map((label, index) => (
@@ -47,7 +47,7 @@ export function VirtualizedSectionList({
                             key={label}
                             className={
                                 index === columns.length - 1
-                                    ? 'sticky right-0 z-10 -mr-6 border-l border-gray-200 bg-gray-50 pl-4 pr-6 text-right'
+                                    ? 'sticky right-0 z-10 -mr-6 border-l border-border bg-muted pl-4 pr-6 text-right'
                                     : ''
                             }
                         >
@@ -59,7 +59,7 @@ export function VirtualizedSectionList({
                 {/* List */}
                 <div className="flex-1 bg-card">
                     {isEmpty && !loading ? (
-                        <div className="flex h-40 items-center justify-center text-sm text-gray-500">
+                        <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
                             {emptyMessage}
                         </div>
                     ) : (
@@ -67,7 +67,7 @@ export function VirtualizedSectionList({
                             useWindowScroll
                             data={data}
                             itemContent={(index, row) => (
-                                <div className={`border-b border-gray-100 last:border-0 ${minWidthClass}`}>
+                                <div className={`border-b border-border last:border-0 ${minWidthClass}`}>
                                     {rowRenderer(index, row)}
                                 </div>
                             )}

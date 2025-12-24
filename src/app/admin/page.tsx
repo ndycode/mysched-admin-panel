@@ -46,8 +46,8 @@ import {
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/Dialog'
 import { AnimatedTabs } from './_components/AnimatedTabs'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
-import { AddClassDialog } from './_components/dialogs/AddClassDialog'
-import { AddSectionDialog } from './_components/dialogs/AddSectionDialog'
+import { ClassFormDialog } from './_components/dialogs/ClassFormDialog'
+import { SectionFormDialog } from './_components/dialogs/SectionFormDialog'
 import { ImportClassesDialog } from './_components/dialogs/ImportClassesDialog'
 import { AddUserDialog } from './users/components/dialogs/AddUserDialog'
 import { useToast } from '@/components/toast'
@@ -477,18 +477,59 @@ export default function AdminDashboard() {
 
 
   const headerActions = (
-    <div className="hidden items-center gap-3 sm:flex">
-      <AnimatedActionBtn
-        icon={RefreshCw}
-        label="Reload"
-        onClick={load}
-        isLoading={initialLoading}
-        loadingLabel="Refreshing..."
-        variant="secondary"
-        spinner="framer"
-        className="hidden sm:inline-flex"
-      />
-    </div>
+    <>
+      {/* Desktop / Tablet */}
+      <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={load}
+          isLoading={initialLoading}
+          loadingLabel="Refreshing..."
+          variant="secondary"
+          spinner="framer"
+        />
+        <AnimatedActionBtn
+          icon={Upload}
+          label="Import from image"
+          onClick={() => setImportOpen(true)}
+          variant="secondary"
+        />
+        <AnimatedActionBtn
+          icon={BookOpen}
+          label="Add Class"
+          onClick={() => setAddClassOpen(true)}
+          variant="primary"
+        />
+      </div>
+      {/* Mobile */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        <AnimatedActionBtn
+          icon={BookOpen}
+          label="Add Class"
+          onClick={() => setAddClassOpen(true)}
+          variant="primary"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
+          icon={Upload}
+          label="Import from image"
+          onClick={() => setImportOpen(true)}
+          variant="secondary"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={load}
+          isLoading={initialLoading}
+          loadingLabel="Refreshing..."
+          variant="secondary"
+          spinner="framer"
+          className="w-full justify-center"
+        />
+      </div>
+    </>
   )
 
 
@@ -505,13 +546,14 @@ export default function AdminDashboard() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground">Monitor activity, data health, and quick actions.</p>
           </div>
           {headerActions}
         </div>
 
         <div className="space-y-6">
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+          <div className="order-1 grid grid-cols-2 gap-3 sm:order-none sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
             <StatsCard
               icon={TrendingUp}
               label="Total Activity"
@@ -978,7 +1020,7 @@ export default function AdminDashboard() {
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Change Data</label>
-                    <div className="w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm font-mono text-foreground overflow-auto max-h-52">
+                    <div className="w-full rounded-lg border border-input bg-muted/50 px-3 py-2 text-sm font-mono text-foreground overflow-auto max-h-64 scrollbar-thin scrollbar-thumb-muted-foreground/20">
                       <pre className="whitespace-pre-wrap break-all">
                         {JSON.stringify(selectedEntry.details || {}, null, 2)}
                       </pre>
@@ -1012,17 +1054,19 @@ export default function AdminDashboard() {
           />
         )}
         {addClassOpen && (
-          <AddClassDialog
+          <ClassFormDialog
+            mode="add"
             open={addClassOpen}
             onOpenChange={setAddClassOpen}
-            onCreated={load}
+            onComplete={load}
           />
         )}
         {addSectionOpen && (
-          <AddSectionDialog
+          <SectionFormDialog
+            mode="add"
             open={addSectionOpen}
             onOpenChange={setAddSectionOpen}
-            onCreated={load}
+            onComplete={load}
           />
         )}
         {addUserOpen && (

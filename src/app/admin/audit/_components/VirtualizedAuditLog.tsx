@@ -57,7 +57,7 @@ export function VirtualizedAuditLog({
                             useWindowScroll
                             data={data}
                             itemContent={(index, row) => (
-                                <div className={`border-b border-gray-100 last:border-0 ${minWidthClass}`}>
+                                <div className={`border-b border-border last:border-0 ${minWidthClass}`}>
                                     {rowRenderer(index, row)}
                                 </div>
                             )}

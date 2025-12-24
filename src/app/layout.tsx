@@ -58,7 +58,7 @@ export default function RootLayout({
           <Script id="mysched-runtime-env" strategy="beforeInteractive">
             {`window.__MYSCHED_PUBLIC_ENV__ = Object.freeze(${serializedRuntimeEnv});`}
           </Script>
-          <CustomCursor />
+          {/* <CustomCursor /> */} {/* Temporarily disabled */}
           <ClickSpark sparkCount={4} sparkRadius={12} sparkSize={7} duration={300} />
           <GlobalListeners />
 

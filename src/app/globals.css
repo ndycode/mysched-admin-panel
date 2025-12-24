@@ -826,3 +826,19 @@ input[type=number]::-webkit-outer-spin-button {
 .disable-transitions * {
   transition: none !important;
 }
+
+/* Status bar marquee animation */
+@keyframes status-bar-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.status-bar-marquee {
+  display: inline-block;
+  min-width: 200%;
+  animation: status-bar-marquee 22s linear infinite;
+}

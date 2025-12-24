@@ -18,6 +18,24 @@ type VirtualizedAdminTableProps<T> = {
     minWidthClass?: string
 }
 
+// Define forwardRef components outside the render function to prevent recreation
+const TableHeadComponent = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
+    (props, ref) => <thead {...props} ref={ref} className="bg-muted/50" />,
+)
+TableHeadComponent.displayName = 'VirtualizedTableHead'
+
+const TableBodyComponent = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
+    (props, ref) => <tbody {...props} ref={ref} className="divide-y divide-border" />,
+)
+TableBodyComponent.displayName = 'VirtualizedTableBody'
+
+const TableRowComponent = (props: React.HTMLAttributes<HTMLTableRowElement>) => (
+    <tr
+        {...props}
+        className={`group hover:bg-muted/50 transition-colors ${props.className ?? ''}`}
+    />
+)
+
 export function VirtualizedAdminTable<T>({
     data,
     header,
@@ -34,16 +52,6 @@ export function VirtualizedAdminTable<T>({
     const showLoadingBanner = loading && data.length === 0
     const showErrorBanner = Boolean(error) && !loading && data.length === 0
 
-    const TableHeadComponent = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
-        (props, ref) => <thead {...props} ref={ref} className="bg-muted/50" />,
-    )
-    TableHeadComponent.displayName = 'VirtualizedTableHead'
-
-    const TableBodyComponent = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
-        (props, ref) => <tbody {...props} ref={ref} className="divide-y divide-border" />,
-    )
-    TableBodyComponent.displayName = 'VirtualizedTableBody'
-
     const components = useMemo(() => {
         return {
             Table: (props: React.TableHTMLAttributes<HTMLTableElement>) => (
@@ -54,14 +62,9 @@ export function VirtualizedAdminTable<T>({
             ),
             TableHead: TableHeadComponent,
             TableBody: TableBodyComponent,
-            TableRow: (props: React.HTMLAttributes<HTMLTableRowElement>) => (
-                <tr
-                    {...props}
-                    className={`group hover:bg-muted/50 transition-colors ${props.className ?? ''}`}
-                />
-            ),
+            TableRow: TableRowComponent,
         }
-    }, [minWidthClass, TableHeadComponent, TableBodyComponent])
+    }, [minWidthClass])
 
     return (
         <section className="space-y-3">

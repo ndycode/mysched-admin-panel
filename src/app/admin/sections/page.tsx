@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Download,
   Eye,
+  Layers,
   Pencil,
   Plus,
   RefreshCw,
@@ -18,18 +19,16 @@ import {
   Trash2,
   MoreVertical,
   Grid,
-  ChevronsUpDown,
-  ArrowUp,
-  ArrowDown,
+  Calendar,
   ChevronDown,
   X,
   Check,
 } from 'lucide-react'
 
 import { ReactLenis } from 'lenis/react'
-import { Badge, Button, PrimaryButton } from '@/components/ui'
+import { Badge, Button } from '@/components/ui'
 import { AnimatedActionBtn } from '@/components/ui/AnimatedActionBtn'
-import { AddSectionDialog } from '../_components/dialogs/AddSectionDialog'
+import { SectionFormDialog } from '../_components/dialogs/SectionFormDialog'
 import { DeleteConfirmationDialog } from '@/components/ui/DeleteConfirmationDialog'
 import { Checkbox } from '@/components/ui/Checkbox'
 import {
@@ -296,141 +295,7 @@ function ViewSectionDialog({ section, open, onClose, loading = false }: ViewSect
   )
 }
 
-type EditSectionDialogProps = {
-  section: SectionRow | null
-  open: boolean
-  onClose: () => void
-  onUpdated: () => Promise<void> | void
-}
-
-function EditSectionDialog({ section, open, onClose, onUpdated }: EditSectionDialogProps) {
-  const toast = useToast()
-  const [sectionNumber, setSectionNumber] = useState('')
-  const [code, setCode] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const sectionNumberRef = useRef<HTMLInputElement | null>(null)
-
-  useEffect(() => {
-    if (open && section) {
-      setSectionNumber(section.sectionNumber === '-' ? '' : section.sectionNumber)
-      setCode(section.code ?? '')
-      setSubmitting(false)
-      setFormError(null)
-    }
-    if (!open) {
-      setSubmitting(false)
-    }
-  }, [open, section])
-
-  const currentSection = section
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!currentSection) return
-
-    const payload: Record<string, unknown> = {}
-
-    const normalizedNumber = sectionNumber.trim()
-    const originalNumber = currentSection.sectionNumber === '-' ? '' : currentSection.sectionNumber
-    if (normalizedNumber !== originalNumber) {
-      payload.section_number = normalizedNumber || null
-    }
-
-    const normalizedCode = code.trim()
-    const originalCode = currentSection.code ?? ''
-    if (normalizedCode !== originalCode) {
-      payload.code = normalizedCode
-    }
-
-    if (Object.keys(payload).length === 0) {
-      setFormError('No changes to save.')
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      await api(`/api/sections/${currentSection.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      })
-      toast({ kind: 'success', msg: 'Section updated.' })
-      await onUpdated()
-      onClose()
-    } catch (error) {
-      const { message } = normalizeApiError(error, 'Failed to update section.')
-      setFormError(message)
-      toast({ kind: 'error', msg: message })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()} className="max-w-3xl" initialFocus={sectionNumberRef as any}>
-      {currentSection && currentSection.id !== null ? (
-        <>
-          <DialogHeader>
-            <h2 className="text-xl font-semibold text-foreground">Edit section</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Update metadata for {currentSection.sectionNumber}.</p>
-          </DialogHeader>
-          <DialogBody>
-            <form onSubmit={handleSubmit} className="grid gap-5">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="text-sm font-medium text-foreground">
-                  Section number
-                  <input
-                    type="text"
-                    ref={sectionNumberRef}
-                    value={sectionNumber}
-                    onChange={(event) => setSectionNumber(event.target.value)}
-                    className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </label>
-                <label className="text-sm font-medium text-foreground">
-                  Section code
-                  <input
-                    type="text"
-                    value={code}
-                    onChange={(event) => setCode(event.target.value)}
-                    className="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    required
-                  />
-                </label>
-              </div>
-
-              {formError ? (
-                <p className="text-xs text-destructive">{formError}</p>
-              ) : null}
-
-              <div className="flex justify-end gap-3 pt-2">
-                <AnimatedActionBtn
-                  icon={X}
-                  label="Cancel"
-                  onClick={onClose}
-                  disabled={submitting}
-                  variant="secondary"
-                />
-                <AnimatedActionBtn
-                  icon={Check}
-                  label="Save changes"
-                  onClick={() => {
-                    const form = document.querySelector('form')
-                    if (form) form.requestSubmit()
-                  }}
-                  isLoading={submitting}
-                  loadingLabel="Saving..."
-                  variant="primary"
-                />
-              </div>
-            </form>
-          </DialogBody>
-        </>
-      ) : null}
-    </Dialog>
-  )
-}
+// EditSectionDialog removed - now using SectionFormDialog
 
 export default function SectionsPage() {
   const toast = useToast()
@@ -673,7 +538,12 @@ export default function SectionsPage() {
 
   const activeFilters = useMemo(() => {
     const pills: string[] = []
-    if (search.trim()) pills.push(`Search: "${search.trim()}"`)
+    const trimmedSearch = search.trim()
+    if (trimmedSearch) pills.push(`Search: "${trimmedSearch}"`)
+    if (semesterFilter !== 'all') {
+      const semesterName = semesters.find(s => String(s.id) === semesterFilter)?.name ?? semesterFilter
+      pills.push(`Semester: ${semesterName}`)
+    }
     if (instructorFilter !== 'all') {
       const name = instructors.find(i => i.id === instructorFilter)?.full_name ?? instructorFilter
       pills.push(`Instructor: ${name}`)
@@ -682,7 +552,7 @@ export default function SectionsPage() {
       pills.push(`Sorted by ${sort.charAt(0).toUpperCase() + sort.slice(1)} (${sortDirection === 'asc' ? 'Ascending' : 'Descending'})`)
     }
     return pills
-  }, [search, instructorFilter, instructors, sort, sortDirection, userSorted])
+  }, [search, semesterFilter, semesters, instructorFilter, instructors, sort, sortDirection, userSorted])
 
   const handleSortChange = useCallback((key: SectionSortKey) => {
     setSort(prev => {
@@ -776,12 +646,14 @@ export default function SectionsPage() {
   const headerActions = (
     <>
       {/* Desktop / Tablet */}
-      <div className="hidden items-center gap-3 sm:flex">
+      <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <AnimatedActionBtn
           icon={Download}
           label="Export"
           onClick={() => setExporting(true)}
           disabled={exporting}
+          isLoading={exporting}
+          loadingLabel="Preparing..."
           variant="secondary"
         />
         <AnimatedActionBtn
@@ -812,6 +684,17 @@ export default function SectionsPage() {
           className="w-full justify-center"
         />
         <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={handleManualRefresh}
+          disabled={isFetching}
+          isLoading={reloadSpinning}
+          loadingLabel="Reloading..."
+          variant="secondary"
+          spinner="framer"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
           icon={Download}
           label="Export"
           onClick={() => setExporting(true)}
@@ -832,15 +715,16 @@ export default function SectionsPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Sections</h1>
-            <p className="text-muted-foreground">Manage section schedules.</p>
+            <p className="text-muted-foreground">Manage section schedules, class assignments, and semester coverage.</p>
           </div>
           {headerActions}
         </div>
 
-        <AddSectionDialog
+        <SectionFormDialog
+          mode="add"
           open={addOpen}
           onOpenChange={setAddOpen}
-          onCreated={async () => {
+          onComplete={async () => {
             await queryClient.invalidateQueries({ queryKey: ['sections', 'table'] })
           }}
         />
@@ -849,13 +733,15 @@ export default function SectionsPage() {
           open={Boolean(viewingSection)}
           onClose={() => setViewingSection(null)}
         />
-        <EditSectionDialog
-          section={editingSection}
+        <SectionFormDialog
+          mode="edit"
+          sectionData={editingSection}
           open={Boolean(editingSection)}
-          onUpdated={async () => {
+          onOpenChange={(open) => !open && setEditingSection(null)}
+          onComplete={async () => {
             await queryClient.invalidateQueries({ queryKey: ['sections', 'table'] })
+            setEditingSection(null)
           }}
-          onClose={() => setEditingSection(null)}
         />
         <DeleteConfirmationDialog
           open={deletingId !== null}
@@ -868,9 +754,9 @@ export default function SectionsPage() {
 
         <div className="space-y-6">
           {/* Stats Grid (mobile first) */}
-          <div className="order-1 grid grid-cols-2 gap-3 sm:order-none sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+          <div className="order-1 grid grid-cols-2 gap-3 sm:order-none sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
             <StatsCard
-              icon={Grid}
+              icon={Layers}
               label="Total Sections"
               value={String(stats.totalSections)}
               className="shadow-sm border-border"
@@ -878,13 +764,24 @@ export default function SectionsPage() {
             />
             <StatsCard
               icon={Grid}
+              label="Avg. Classes / Section"
+              value={
+                typeof stats.avgClasses === 'number'
+                  ? stats.avgClasses.toFixed(1)
+                  : '-'
+              }
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={Calendar}
               label="Added This Month"
               value={String(stats.addedThisMonth)}
               className="shadow-sm border-border"
               animateKey={statsPulse}
             />
             <StatsCard
-              icon={Grid}
+              icon={RefreshCw}
               label="Last Updated"
               value={stats.lastUpdated ? formatDate(stats.lastUpdated) : '-'}
               className="shadow-sm border-border"
@@ -898,14 +795,15 @@ export default function SectionsPage() {
               <div className="mb-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</h3>
                 <h2 className="text-lg font-bold text-foreground">Section filters</h2>
-                <p className="text-sm text-muted-foreground">Search and filter sections.</p>
+                <p className="text-sm text-muted-foreground">Search and filter sections by instructor or semester.</p>
               </div>
               <ActiveFiltersPills
                 activeFilters={activeFilters}
                 onClearFilters={() => {
                   setSearch('')
-                  setSort('code')
+                  setSort('section')
                   setSortDirection('asc')
+                  setSemesterFilter('all')
                   setInstructorFilter('all')
                   setUserSorted(false)
                   setPage(1)

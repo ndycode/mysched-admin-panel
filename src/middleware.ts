@@ -61,6 +61,14 @@ export async function middleware(req: NextRequest) {
   const allowAnyAuth = process.env.ALLOW_ANY_AUTH_AS_ADMIN === 'true'
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE
 
+  // SECURITY: ALLOW_ANY_AUTH_AS_ADMIN must never be enabled in production
+  if (allowAnyAuth && process.env.NODE_ENV === 'production') {
+    console.error('CRITICAL SECURITY: ALLOW_ANY_AUTH_AS_ADMIN must not be enabled in production!')
+    const to = new URL('/login', req.url)
+    to.searchParams.set('reason', 'server-misconfig')
+    return NextResponse.redirect(to)
+  }
+
   if (isAdminRoute && !allowAnyAuth) {
     if (!serviceRoleKey) {
       if (process.env.NODE_ENV !== 'production') {

@@ -37,7 +37,11 @@ export default function Topbar({ mobileMenuOpen, onMobileMenuToggle }: TopbarPro
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-3">
-          <div className="topbar-avatar h-10 w-10 text-sm font-semibold text-[var(--foreground)]">
+          <div 
+            className="topbar-avatar h-10 w-10 text-sm font-semibold text-[var(--foreground)]"
+            aria-label={email ? `User: ${email}` : 'User avatar'}
+            role="img"
+          >
             {email?.[0]?.toUpperCase() ?? 'U'}
           </div>
           <motion.span

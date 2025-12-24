@@ -85,6 +85,7 @@ import { PageSizeSelector } from '@/components/ui/PageSizeSelector'
 export default function AuditLogPage() {
   const toast = useToast()
   const [pageSize, setPageSize] = useState(10)
+  const [statsPulse, setStatsPulse] = useState(0)
 
   const [logs, setLogs] = useState<AuditLogRecord[]>([])
   const [loading, setLoading] = useState(false)
@@ -157,6 +158,7 @@ export default function AuditLogPage() {
       const mapped = data.map((row, index) => mapAuditLogRow(row, index))
       const deduped = dedupeLogs(mapped)
       setLogs(deduped)
+      setStatsPulse((p) => p + 1)
     } catch (err) {
       const message = (err as { message?: string } | null)?.message || 'Failed to load audit logs'
       setError(message)
@@ -467,7 +469,7 @@ export default function AuditLogPage() {
   const headerActions = (
     <>
       {/* Desktop / Tablet */}
-      <div className="hidden flex-col gap-2 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+      <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <div className="flex flex-wrap gap-2">
           <AnimatedActionBtn
             icon={Calendar}
@@ -532,6 +534,16 @@ export default function AuditLogPage() {
           />
         ) : null}
         <AnimatedActionBtn
+          icon={RefreshCw}
+          label="Reload"
+          onClick={() => void loadLogs()}
+          isLoading={loading}
+          loadingLabel="Reloading..."
+          variant="secondary"
+          spinner="framer"
+          className="w-full justify-center"
+        />
+        <AnimatedActionBtn
           icon={Download}
           label="Export Logs"
           onClick={handleExportLogs}
@@ -592,8 +604,40 @@ export default function AuditLogPage() {
         />
 
         <div className="space-y-6">
+          {/* Stats Grid (mobile first) */}
+          <div className="order-1 grid grid-cols-2 gap-3 sm:order-none sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+            <StatsCard
+              icon={Activity}
+              label="Total logs"
+              value={String(stats.totalLogs)}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={Clock}
+              label="Today's actions"
+              value={String(stats.todayCount)}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={CheckCircle}
+              label="Active users"
+              value={String(stats.activeUsers)}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+            <StatsCard
+              icon={AlertTriangle}
+              label="Critical events"
+              value={String(stats.criticalEvents)}
+              className="shadow-sm border-border"
+              animateKey={statsPulse}
+            />
+          </div>
+
           {/* Filters */}
-          <CardSurface className="space-y-4 shadow-sm border-border hover:border-border/80 transition-colors">
+          <CardSurface className="order-2 space-y-4 shadow-sm border-border hover:border-border/80 transition-colors sm:order-none">
             <div className="p-1">
               <div className="mb-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</h3>
@@ -704,34 +748,6 @@ export default function AuditLogPage() {
               </div>
             </div>
           </CardSurface>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
-            <StatsCard
-              icon={Activity}
-              label="Total logs"
-              value={String(stats.totalLogs)}
-              className="shadow-sm border-border"
-            />
-            <StatsCard
-              icon={Clock}
-              label="Today's actions"
-              value={String(stats.todayCount)}
-              className="shadow-sm border-border"
-            />
-            <StatsCard
-              icon={CheckCircle}
-              label="Active users"
-              value={String(stats.activeUsers)}
-              className="shadow-sm border-border"
-            />
-            <StatsCard
-              icon={AlertTriangle}
-              label="Critical events"
-              value={String(stats.criticalEvents)}
-              className="shadow-sm border-border"
-            />
-          </div>
 
           {/* Table Card */}
           <div className="relative">

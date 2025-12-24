@@ -36,10 +36,18 @@ export function ClassesFilters() {
         </Select>
       </div>
       <div className="col-span-12 sm:col-span-3">
-        <input className={ctl} placeholder="Filter Title" />
+        <input 
+          className={ctl} 
+          placeholder="Filter Title" 
+          aria-label="Filter by title"
+        />
       </div>
       <div className="col-span-12 sm:col-span-2">
-        <input className={ctl} placeholder="Filter Code" />
+        <input 
+          className={ctl} 
+          placeholder="Filter Code" 
+          aria-label="Filter by code"
+        />
       </div>
       <div className="col-span-12 sm:col-span-1 flex sm:justify-end">
         <button className="h-11 w-full rounded-3xl border border-white/60 bg-white/60 px-4 text-sm font-medium text-[var(--muted-foreground)] shadow-[0_12px_30px_-28px_rgba(15,23,42,0.5)] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(13,95,229,0.45)] focus-visible:ring-offset-2 focus-visible:ring-offset-white/40 sm:w-auto">

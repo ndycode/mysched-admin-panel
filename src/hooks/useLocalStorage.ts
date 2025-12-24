@@ -1,30 +1,38 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export function useLocalStorage<T>(key: string, initial: T) {
-  const readValue = useMemo(() => {
-    return () => {
-      try {
-        const raw = window.localStorage.getItem(key)
-        return raw != null ? (JSON.parse(raw) as T) : initial
-      } catch {
-        return initial
-      }
-    }
-  }, [initial, key])
+  // Always initialize with `initial` to avoid SSR/client hydration mismatch
+  const [value, setValue] = useState<T>(initial)
+  const [isHydrated, setIsHydrated] = useState(false)
 
-  const [value, setValue] = useState<T>(() => readValue())
-
-  useEffect(() => {
-    setValue(readValue())
-  }, [readValue])
-
+  // Read from localStorage only on client after hydration
   useEffect(() => {
     try {
-      window.localStorage.setItem(key, JSON.stringify(value))
-    } catch {}
-  }, [key, value])
+      const raw = window.localStorage.getItem(key)
+      if (raw != null) {
+        setValue(JSON.parse(raw) as T)
+      }
+    } catch {
+      // Ignore parse errors, keep initial value
+    }
+    setIsHydrated(true)
+  }, [key])
 
-  return [value, setValue] as const
+  // Persist changes to localStorage after hydration
+  useEffect(() => {
+    if (!isHydrated) return
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value))
+    } catch {
+      // Ignore storage errors (quota exceeded, etc.)
+    }
+  }, [key, value, isHydrated])
+
+  const setValueSafe = useCallback((newValue: T | ((prev: T) => T)) => {
+    setValue(newValue)
+  }, [])
+
+  return [value, setValueSafe] as const
 }

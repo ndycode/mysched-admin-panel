@@ -1,8 +1,8 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @next/next/no-img-element */
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import {
   BookOpen,
@@ -13,9 +13,6 @@ import {
   Settings,
   UserRound,
   Users,
-  Sparkles,
-  ChevronDown,
-  ChevronsUpDown,
   ChevronsLeft,
   ChevronsRight,
   LogOut,
@@ -23,8 +20,6 @@ import {
 } from 'lucide-react'
 
 import { motion } from 'framer-motion'
-import { Badge } from '@/components/ui'
-import { buttonClasses } from '@/components/ui/Button'
 
 type NavItem = {
   href: string
@@ -33,15 +28,38 @@ type NavItem = {
   badge?: string | number
 }
 
-export const NAV_ITEMS: NavItem[] = [
-  { href: '/admin', label: 'Dashboard', icon: Home },
-  { href: '/admin/classes', label: 'Classes', icon: BookOpen },
-  { href: '/admin/sections', label: 'Sections', icon: Layers },
-  { href: '/admin/semesters', label: 'Semesters', icon: Calendar },
-  { href: '/admin/instructors', label: 'Instructors', icon: UserRound },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/audit', label: 'Logs', icon: FileText },
-  { href: '/admin/issues', label: 'Issues', icon: AlertTriangle },
+type NavSection = {
+  label: string
+  items: NavItem[]
+}
+
+export const NAV_SECTIONS: NavSection[] = [
+  {
+    label: 'Overview',
+    items: [{ href: '/admin', label: 'Dashboard', icon: Home }],
+  },
+  {
+    label: 'Scheduling',
+    items: [
+      { href: '/admin/classes', label: 'Classes', icon: BookOpen },
+      { href: '/admin/sections', label: 'Sections', icon: Layers },
+      { href: '/admin/semesters', label: 'Semesters', icon: Calendar },
+    ],
+  },
+  {
+    label: 'People',
+    items: [
+      { href: '/admin/instructors', label: 'Instructors', icon: UserRound },
+      { href: '/admin/users', label: 'Users', icon: Users },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { href: '/admin/issues', label: 'Issues', icon: AlertTriangle },
+      { href: '/admin/audit', label: 'Logs', icon: FileText },
+    ],
+  },
 ]
 
 function cn(...classes: Array<string | undefined | false>) {
@@ -54,11 +72,6 @@ const dockVariants = {
   idle: { scale: 1, y: 0 },
   hover: { scale: 1.05, y: -2, transition: { type: 'spring' as const, stiffness: 520, damping: 32, mass: 0.9 } },
   tap: { scale: 0.97, y: 0 },
-}
-
-const collapseVariants = {
-  expanded: { opacity: 1, x: 0 },
-  collapsed: { opacity: 0, x: -8 },
 }
 
 export function AdminSidebarNav({
@@ -77,6 +90,10 @@ export function AdminSidebarNav({
   onToggleCollapse?: () => void
 }) {
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const isActive = (item: NavItem) => {
     if (item.href === '/admin') {
@@ -172,9 +189,18 @@ export function AdminSidebarNav({
         aria-label="Admin navigation"
         data-collapsed={collapsed}
       >
-        {NAV_ITEMS.map((item, index) => {
-          if ('type' in item && item.type === 'divider') {
-            return <div key={`divider-${index}`} className={cn("my-2 border-t border-border mx-4", collapsed ? "mx-2 w-8" : "")} />
+        {(mounted ? NAV_SECTIONS.flatMap(section => [{ heading: section.label }, ...section.items]) : NAV_SECTIONS.flatMap(section => section.items)).map((item, index) => {
+          if ('heading' in item) {
+            return (
+              !collapsed && (
+                <div
+                  key={`heading-${item.heading}`}
+                  className="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80"
+                >
+                  {item.heading}
+                </div>
+              )
+            )
           }
 
           const navItem = item as NavItem

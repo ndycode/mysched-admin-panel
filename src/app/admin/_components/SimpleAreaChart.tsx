@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
+import { motion } from 'framer-motion'
+import { DURATION } from '@/lib/motion'
 
 export function SimpleAreaChart({ data, color }: { data: { value: number }[]; color: string }) {
     const points = useMemo(() => {
@@ -17,7 +19,12 @@ export function SimpleAreaChart({ data, color }: { data: { value: number }[]; co
     }, [data])
 
     return (
-        <div className="h-full w-full">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: DURATION.STANDARD }}
+            className="h-full w-full"
+        >
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
                 <defs>
                     <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
@@ -25,18 +32,24 @@ export function SimpleAreaChart({ data, color }: { data: { value: number }[]; co
                         <stop offset="100%" stopColor={color} stopOpacity="0" />
                     </linearGradient>
                 </defs>
-                <path
+                <motion.path
                     d={`M0,100 ${points} 100,100 Z`}
                     fill="url(#gradient)"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: DURATION.SLOW, delay: 0.2 }}
                 />
-                <polyline
+                <motion.polyline
                     points={points}
                     fill="none"
                     stroke={color}
                     strokeWidth="2"
                     vectorEffect="non-scaling-stroke"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: DURATION.SLOW, ease: 'easeOut' }}
                 />
             </svg>
-        </div>
+        </motion.div>
     )
 }

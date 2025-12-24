@@ -6,8 +6,10 @@ import type { ComponentType, SVGProps } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Plus } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 import { useComingSoon } from '@/components/ComingSoonDialog'
+import { spring } from '@/lib/motion'
 
 import { NAV_ITEMS } from './AdminSidebarNav'
 
@@ -27,22 +29,24 @@ function DockLink({
   active: boolean
 }) {
   return (
-    <Link
-      href={href}
-      aria-label={label}
-      className={cn(
-        'flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-[11px] font-medium transition-colors',
-        active
-          ? 'text-primary'
-          : 'text-muted-foreground hover:text-primary',
-      )}
-    >
-      <Icon
-        className={cn('h-5 w-5', active ? 'text-primary' : 'text-muted-foreground')}
-        aria-hidden
-      />
-      <span>{label}</span>
-    </Link>
+    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+      <Link
+        href={href}
+        aria-label={label}
+        className={cn(
+          'flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-[11px] font-medium transition-colors',
+          active
+            ? 'text-primary'
+            : 'text-muted-foreground hover:text-primary',
+        )}
+      >
+        <Icon
+          className={cn('h-5 w-5', active ? 'text-primary' : 'text-muted-foreground')}
+          aria-hidden
+        />
+        <span>{label}</span>
+      </Link>
+    </motion.div>
   )
 }
 
@@ -54,7 +58,10 @@ export function AdminMobileDock() {
   const rightItems = NAV_ITEMS.slice(2, 4)
 
   return (
-    <nav
+    <motion.nav
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={spring}
       className="fixed bottom-4 left-1/2 z-40 w-full max-w-md -translate-x-1/2 px-4 md:hidden"
       aria-label="Primary"
     >
@@ -70,7 +77,7 @@ export function AdminMobileDock() {
             />
           ))}
         </div>
-        <button
+        <motion.button
           type="button"
           onClick={() =>
             comingSoon({
@@ -79,11 +86,13 @@ export function AdminMobileDock() {
                 'Quick actions for creating classes, sections, and reminders are coming soon to the mobile dock.',
             })
           }
-          className="relative -translate-y-5 rounded-full bg-primary p-4 text-primary-foreground shadow-[0_24px_50px_-24px_rgba(10,132,255,0.65)] transition-transform hover:-translate-y-6"
+          whileHover={{ scale: 1.1, y: -28 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative -translate-y-5 rounded-full bg-primary p-4 text-primary-foreground shadow-[0_24px_50px_-24px_rgba(10,132,255,0.65)] transition-transform"
           aria-label="Open quick create"
         >
           <Plus className="h-5 w-5" aria-hidden />
-        </button>
+        </motion.button>
         <div className="flex flex-1 items-center justify-evenly">
           {rightItems.map(item => (
             <DockLink
@@ -96,6 +105,6 @@ export function AdminMobileDock() {
           ))}
         </div>
       </div>
-    </nav>
+    </motion.nav>
   )
 }

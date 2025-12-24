@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { motion } from 'framer-motion'
 import { MoreVertical } from 'lucide-react'
 import {
   DropdownMenu,
@@ -31,23 +32,31 @@ export function TableActions({ items, ariaLabel, variant = 'muted', triggerIcon 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <ActionMenuTrigger ariaLabel={ariaLabel} icon={TriggerIcon} variant={variant} />
+        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <ActionMenuTrigger ariaLabel={ariaLabel} icon={TriggerIcon} variant={variant} />
+        </motion.div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        {items.map(action => {
+        {items.map((action, index) => {
           const Icon = action.icon
           return (
-            <DropdownMenuItem
+            <motion.div
               key={action.label}
-              onClick={() => {
-                if (!action.disabled) action.onSelect()
-              }}
-              disabled={action.disabled}
-              className={action.tone === 'danger' ? 'text-destructive focus:bg-destructive/10 focus:text-destructive' : ''}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
             >
-              {Icon ? <Icon className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden /> : null}
-              {action.label}
-            </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (!action.disabled) action.onSelect()
+                }}
+                disabled={action.disabled}
+                className={action.tone === 'danger' ? 'text-destructive focus:bg-destructive/10 focus:text-destructive' : ''}
+              >
+                {Icon ? <Icon className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden /> : null}
+                {action.label}
+              </DropdownMenuItem>
+            </motion.div>
           )
         })}
       </DropdownMenuContent>

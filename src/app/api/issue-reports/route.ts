@@ -21,9 +21,9 @@ type IssueReportRow = {
 
 export async function GET(request: NextRequest) {
     try {
-        await requireAdmin(request)
+        await requireAdmin()
         await throttle(getClientIp(request))
-        
+
         const { searchParams } = new URL(request.url)
         const status = searchParams.get('status')
         const limit = Math.min(Number(searchParams.get('limit')) || 100, 500)
@@ -93,10 +93,10 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
     try {
-        await requireAdmin(request)
+        await requireAdmin()
         assertSameOrigin(request)
         await throttle(getClientIp(request))
-        
+
         const body = await request.json()
         const { id, status, resolution_note } = body
 

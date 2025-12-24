@@ -1,16 +1,30 @@
-import { cn } from "@/lib/utils"
+'use client'
+
+import { motion } from 'framer-motion'
+import { cn } from '@/lib/utils'
 
 function Skeleton({
     className,
     ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
     return (
-        <div
-            className={cn("relative overflow-hidden rounded-md bg-muted", className)}
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className={cn('relative overflow-hidden rounded-md bg-muted', className)}
             {...props}
         >
-            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-black/5 dark:via-white/10 to-transparent" />
-        </div>
+            <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 dark:via-white/10 to-transparent"
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: 'linear',
+                }}
+            />
+        </motion.div>
     )
 }
 

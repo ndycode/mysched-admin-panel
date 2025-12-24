@@ -25,31 +25,27 @@ describe('supabase-service', () => {
         vi.resetModules()
         // Clear any cached client
         const g = globalThis as typeof globalThis & { __myschedServiceClient?: unknown }
-        delete g.__myschedServiceClient
+        g.__myschedServiceClient = undefined
     })
 
     describe('sbService', () => {
         it('should throw error when called on client-side', async () => {
             // Simulate browser environment
-            const originalWindow = globalThis.window
-                ; (globalThis as typeof globalThis & { window?: unknown }).window = {}
+            const originalWindow = (globalThis as { window?: unknown }).window
+                ; (globalThis as { window?: unknown }).window = { document: {} }
 
             const { sbService } = await import('../supabase-service')
 
             expect(() => sbService()).toThrow('Supabase service client is only available on the server.')
 
-            // Restore
-            if (originalWindow === undefined) {
-                delete (globalThis as typeof globalThis & { window?: unknown }).window
-            } else {
-                (globalThis as typeof globalThis & { window?: unknown }).window = originalWindow
-            }
+                // Restore
+                ; (globalThis as { window?: unknown }).window = originalWindow
         })
 
         it('should return a client on server-side', async () => {
             // Ensure no window
-            const originalWindow = (globalThis as typeof globalThis & { window?: unknown }).window
-            delete (globalThis as typeof globalThis & { window?: unknown }).window
+            const originalWindow = (globalThis as { window?: unknown }).window
+                ; (globalThis as { window?: unknown }).window = undefined
 
             const { sbService } = await import('../supabase-service')
             const client = sbService()
@@ -57,10 +53,8 @@ describe('supabase-service', () => {
             expect(client).toBeDefined()
             expect(client).toHaveProperty('from')
 
-            // Restore
-            if (originalWindow !== undefined) {
-                (globalThis as typeof globalThis & { window?: unknown }).window = originalWindow
-            }
+                // Restore
+                ; (globalThis as { window?: unknown }).window = originalWindow
         })
     })
 
